@@ -2,7 +2,21 @@
 
 実施日：2026-09-30 JST。AI-Investment-Adminだけを変更。参照したAI-Investment-APIsは25f4983158d11dafcac32b9c52ea3e3936d0f651で、コード・設定・DB・Cronは変更していません。
 
-## 実装・ローカル検証済み
+## ワイド画面へのUI改修（2026-09-30 JST）
+
+origin/main（ca3fe71）からcodex/wide-overview-layoutを作成し、表示・スタイル・ブラウザテスト・資料だけを変更しました。view-model・poller・network・Worker・契約・起動処理・Wrangler設定・依存関係に変更はありません。
+
+- pnpm.cmd check：成功。
+- pnpm.cmd test：41件、3ファイルすべて成功。
+- pnpm.cmd test:browser（Microsoft Edge）：12件すべて成功。
+- pnpm.cmd build：成功。ローカル生成のみ。
+- 1440×900、1920×1080、2560×1440で空状態とデータ表示状態を確認。主要パネル全体がviewport内に収まり、ページの縦・横スクロールがないことを検証。多数の観測行はパネル内をスクロールできます。
+- 左サイドバー幅、無効な未実装メニュー、折りたたまれた詳細、固定した初回予定のカウントダウン、複数の価格条件・異なる単位・null・追加価格区分の保持を検証。
+- 既存の更新操作・部分失敗・データ消失・狭い画面・Worker拒否処理のテストも維持。
+
+この改修の画面検証はすべて合成レスポンスです。work/screenshots/wide-*は合成データの画像で、Git対象外です。実ソースの収集成功や本番稼働を示すものではありません。以下の実API疎通結果は初期実装時の記録です。
+
+## 初期実装時のローカル検証
 
 - Node 24.19.0 / pnpm 11.19.0 / Windows PowerShell。
 - pnpm.cmd install --frozen-lockfile：成功。依存のpeer条件を確認し、lockfileを固定。

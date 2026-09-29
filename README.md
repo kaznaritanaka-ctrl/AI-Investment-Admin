@@ -2,7 +2,17 @@
 
 初回Collector稼働の**公開結果だけ**を確認する、日本語の読み取り専用画面です。ブラウザ → 同じアプリのGET /api/status → 既存公開APIの順で読みます。Cloudflareログイン、APIトークン、DB、Dockerはローカル起動に不要です。
 
-開発ブランチは **codex/initial-collection-dashboard**。mainへ未マージの場合、mainでgit pullするだけでは取得できません。
+開発ブランチは **codex/wide-overview-layout**。mainへ未マージの場合、mainでgit pullするだけでは取得できません。
+
+## ワイドディスプレイ前提の管理画面
+
+個人用のワイドディスプレイを優先したOverviewです。左216pxの固定サイドバー、上部のstickyヘッダー、4つの小型ステータス、初回確認／Source Status、FX／AI API Pricesを横方向に配置します。1440px以上ではサイドバーを常時表示し、1920〜2560pxでもメイン領域の最大幅を狭く制限しません。主要情報をほぼスクロールせず確認できる密度にしています。
+
+Overviewだけが実装済みです。Sources・API・Data・Logs・Settingsはdisabled表示で、空の画面には移動しません。1280px未満は列を折り返し、狭い画面でも最低限の表示を維持します。スマートフォン優先のレイアウトではありません。
+
+初回予定までのカウントダウンを表示し、予定を過ぎても対象を翌日に移しません。AI価格はモデルごとにinput/outputを併記し、複数の条件はすべて残します。追加の価格区分や課金条件は「全価格区分・条件」で確認できます。異なる通貨・単位を合算・換算しません。
+
+health.datasets・Raw JSON・Diagnosticsは通常閉じてあります。出典・ライセンス・診断コピーはDiagnostics内です。長い説明は各パネルの「i」から開けます。状態判定、公開API取得、60秒更新、Retry-After等の処理は従来と同じです。
 
 ## このPCで今すぐ起動
 
@@ -43,7 +53,7 @@ Set-Location "$env:USERPROFILE\Documents"
 ~~~
 
 ~~~powershell
-git clone --branch codex/initial-collection-dashboard https://github.com/kaznaritanaka-ctrl/AI-Investment-Admin.git
+git clone --branch codex/wide-overview-layout https://github.com/kaznaritanaka-ctrl/AI-Investment-Admin.git
 ~~~
 
 ~~~powershell
@@ -71,11 +81,11 @@ git status --short
 自分で変更したファイルが出た場合は、消さずに内容を確認してください。
 
 ~~~powershell
-git switch codex/initial-collection-dashboard
+git switch codex/wide-overview-layout
 ~~~
 
 ~~~powershell
-git pull --ff-only origin codex/initial-collection-dashboard
+git pull --ff-only origin codex/wide-overview-layout
 ~~~
 
 ~~~powershell
@@ -106,7 +116,7 @@ pnpm.cmd dev
 
 初回対象は **2026-09-30 03:17 JST** で固定し、翌日へ自動変更しません。日次03:17、watchdog03:47 JSTは設定に基づく参考予定で、Cloudflareの現行設定を照会した結果ではありません。
 
-最初に取得し、その後60秒ごとに更新します。「今すぐ表示を更新」は読み直しだけで、収集を実行しません。重複・5秒以内の連打を防止し、429のRetry-Afterを優先します。自動更新OFFも使えます。非表示タブでは自動取得を停止し、表示復帰時に待機時間を守って再取得します。上流のタイムアウトは本文読み取りも含め10秒、画面側は12秒です。
+最初に取得し、その後60秒ごとに更新します。「今すぐ更新」は読み直しだけで、収集を実行しません。重複・5秒以内の連打を防止し、429のRetry-Afterを優先します。自動更新OFFも使えます。非表示タブでは自動取得を停止し、表示復帰時に待機時間を守って再取得します。上流のタイムアウトは本文読み取りも含め10秒、画面側は12秒です。
 
 時刻はJST、元の時刻文字列はJSON欄に表示。観測値はメモリ内だけで扱い、localStorage・Service Worker・CDNキャッシュには保存しません。診断コピー操作はクリップボードへ現在の確認結果を出します。
 
@@ -120,7 +130,7 @@ monitor_connected=0は「外部監視未接続」です。このGUIの作成で�
 
 private側の失敗理由、R2保存結果、全モデル取得完了、Cloudflareの現在のCron・スイッチ・プラン・Access設定。Collector実行・停止・再実行、編集・削除、SQL、Cloudflare管理API接続はありません。DB/R2のIDやSecretsも不要です。
 
-出典・取得範囲・制約・利用条件・MIT通知は「詳細・診断」で確認できます。Models.devは二次カタログ、USD/JPYの計算値はECB公表クロスではありません。契約と参照コミットは [docs/api-contract.md](docs/api-contract.md) に記録しています。
+出典・取得範囲・制約・利用条件・MIT通知は「Diagnostics」で確認できます。Models.devは二次カタログ、USD/JPYの計算値はECB公表クロスではありません。契約と参照コミットは [docs/api-contract.md](docs/api-contract.md) に記録しています。
 
 ## 開発・検証
 
