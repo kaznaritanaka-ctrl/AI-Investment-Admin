@@ -1,6 +1,6 @@
 // SYNTHETIC ONLY. These simulated public responses never enter the production bundle.
 import { StatusSchema, UPSTREAM } from "../src/contracts.ts";
-import type { Status, Observation } from "../src/contracts.ts";
+import type { Status, Observation, FX, AI } from "../src/contracts.ts";
 export const NOW = Date.parse("2026-09-29T18:35:00Z");
 export const STAMP = "2026-09-29T18:18:00.000Z";
 export function sourceMetadata(source_id: string) {
@@ -37,7 +37,7 @@ export function health() {
     },
   };
 }
-export function fx(observed = STAMP): Observation {
+export function fx(observed = STAMP): FX {
   return {
     schema_version: "1",
     observation_id: "synthetic-fx",
@@ -71,7 +71,7 @@ export function fx(observed = STAMP): Observation {
     },
   };
 }
-export function ai(observed = STAMP): Observation {
+export function ai(observed = STAMP): AI {
   return {
     ...fx(observed),
     observation_id: "synthetic-ai",
@@ -139,7 +139,10 @@ export function failure(
     retry_at: null,
   };
 }
-export function report(rows: Observation[] = []): Status {
+export function report(
+  rows: Observation[] = [],
+  fxRows: FX[] = rows.filter((o): o is FX => o.dataset === "fx"),
+): Status {
   return StatusSchema.parse({
     schema_version: "admin-status-v1",
     upstream: UPSTREAM,
@@ -147,6 +150,7 @@ export function report(rows: Observation[] = []): Status {
     endpoints: {
       health: ok(health()),
       latest: rows.length ? ok({ schema_version: "1", data: rows }) : empty(),
+      fx: fxRows.length ? ok({ schema_version: "1", data: fxRows }) : empty(),
       sources: ok({ schema_version: "1", data: [] }),
       licenses: ok({
         id: "licenses",
@@ -154,6 +158,26 @@ export function report(rows: Observation[] = []): Status {
       }),
     },
   });
+}
+export function catalogReport(): Status {
+  const models = Array.from({ length: 100 }, (_, i) => ({
+    ...ai(),
+    observation_id: `synthetic-ai-${i}`,
+    entity_key: `synthetic-model-${i}`,
+    value: { ...ai().value, model_id: `Synthetic model ${i}` },
+  }));
+  const eurJpy = fx(), cross = fx();
+  eurJpy.observation_id = "synthetic-eur-jpy";
+  eurJpy.entity_key = "EUR/JPY";
+  eurJpy.value.quote_currency = "JPY";
+  eurJpy.value.rate_decimal = "170.1234";
+  cross.observation_id = "synthetic-usd-jpy";
+  cross.entity_key = "USD/JPY";
+  cross.value.base_currency = "USD";
+  cross.value.quote_currency = "JPY";
+  cross.value.rate_decimal = "145.23456789";
+  cross.value.reference_rate_type = "project_calculation";
+  return report(models, [fx(), eurJpy, cross]);
 }
 export const json = (
   body: unknown,
@@ -168,17 +192,18 @@ export function publicFetch(
   patches: Record<string, () => Response | Promise<Response>> = {},
 ): typeof fetch {
   return (async (input) => {
-    const path = new URL(String(input)).pathname;
+    const url = new URL(String(input));
+    const path = url.pathname + url.search;
     if (patches[path]) return patches[path]();
     return json(
       path === "/health"
         ? health()
-        : path === "/v1/latest"
+        : url.pathname === "/v1/latest"
           ? { error: { code: "no_observation" } }
           : path === "/v1/sources"
             ? { schema_version: "1", data: [] }
             : { id: "licenses", models_dev_mit: "Synthetic license" },
-      path === "/v1/latest" ? 404 : 200,
+      url.pathname === "/v1/latest" ? 404 : 200,
     );
   }) as typeof fetch;
 }

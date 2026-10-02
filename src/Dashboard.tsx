@@ -69,7 +69,7 @@ function Failure({
   if (result.state === "error")
     return (
       <p className="error-text" role="status">
-        取得エラー：{result.issue}
+        {name === "fx" ? "FX取得エラー" : "取得エラー"}：{result.issue}
         {result.retry_at && (
           <>
             。次回取得可能時刻：
@@ -599,7 +599,7 @@ export function Dashboard({
                             <td>
                               {s.confirmed ? (
                                 <span className="success-text">確認済み</span>
-                              ) : report?.endpoints.latest.state === "error" ||
+                              ) : s.tone === "error" ||
                                 state.error ? (
                                 "判定できない"
                               ) : (
@@ -612,8 +612,9 @@ export function Dashboard({
                     </table>
                   </div>
                   <Failure report={report} name="latest" />
-                  {report?.endpoints.latest.data?.data.some(
-                    (o) => o.data_origin !== "live",
+                  <Failure report={report} name="fx" />
+                  {report && [report.endpoints.latest, report.endpoints.fx].some(
+                    (result) => result.data?.data.some((o) => o.data_origin !== "live"),
                   ) && (
                     <p className="warning-text panel-note">
                       合成データは実観測判定・価格表から除外しています。
@@ -639,7 +640,9 @@ export function Dashboard({
                     </h2>
                     <div className="heading-tools">
                       <span className="small muted">
-                        ECB · {fx.length} 観測
+                        ECB · {!report || report.endpoints.fx.state === "error"
+                          ? "未取得"
+                          : `${fx.length} 観測`}
                       </span>
                       <Hint label="FX値の読み方">
                         <p>
@@ -702,7 +705,7 @@ export function Dashboard({
                       </span>
                       <div>
                         <strong>
-                          {report?.endpoints.latest.state === "error" || !report
+                          {report?.endpoints.fx.state === "error" || !report
                             ? "現在確認できません"
                             : "公開観測はまだありません"}
                         </strong>
@@ -712,6 +715,7 @@ export function Dashboard({
                       </div>
                     </div>
                   )}
+                  <Failure report={report} name="fx" />
                   <div className="panel-note">
                     元データ日付と観測時刻を区別 · nullは未提供として表示
                   </div>
@@ -724,7 +728,9 @@ export function Dashboard({
                     <h2 id="ai-heading">AI API Prices</h2>
                     <div className="heading-tools">
                       <span className="small muted">
-                        Models.dev · {ai.length} 観測
+                        Models.dev · {!report || report.endpoints.latest.state === "error"
+                          ? "未取得"
+                          : `${ai.length} 観測`}
                       </span>
                       <Hint label="AI API価格の比較条件">
                         <p>
@@ -930,7 +936,7 @@ export function Dashboard({
                     {now >= Date.parse(INITIAL_SLOT) + 15 * 60000 &&
                       checks.some((s) => !s.confirmed) &&
                       report &&
-                      report.endpoints.latest.state !== "error" && (
+                      checks.every((s) => s.tone !== "error") && (
                         <p className="warning-text small">
                           未確認のソースあり。収集失敗や原因を断定するものではありません。
                         </p>
@@ -988,7 +994,7 @@ export function Dashboard({
                       </>
                     )}
                     <p className="small muted">
-                      今日の収集件数・DB全件数・R2保存件数ではありません。latestはAPI仕様上、最大100行です。
+                      今日の収集件数・DB全件数・R2保存件数ではありません。観測は各取得応答で最大100行、FXは専用取得です。
                     </p>
                   </div>
                 </details>

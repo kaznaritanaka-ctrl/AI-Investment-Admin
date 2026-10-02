@@ -77,7 +77,7 @@ export function OperationsSummary({
         <div className="stat-value">
           <DateTime stamp={last} />
         </div>
-        <div className="stat-note">latest応答内の最新observed_at</div>
+        <div className="stat-note">取得した観測内の最新observed_at</div>
       </section>
       <section className="stat">
         <h2>Source health</h2>
@@ -244,7 +244,7 @@ export function SourcesPage({
     <div className="sources-page">
       <p className="page-intro">
         公開APIが返したsource
-        metadataとlive観測。掲載がないsourceをdisabledとは判定しません。件数はlatest応答内（全source合計最大100行）の範囲です。
+        metadataとlive観測。掲載がないsourceをdisabledとは判定しません。件数は取得した応答内の範囲です（各最大100行、FXは専用取得）。
       </p>
       <section className="panel">
         <div className="section-head">

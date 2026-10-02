@@ -94,7 +94,7 @@ export async function collectStatus(
         if (response.status === 429)
           result.retry_at = retryAt(response.headers.get("retry-after"), now());
         if (!response.ok) {
-          if (key === "latest" && response.status === 404) {
+          if ((key === "latest" || key === "fx") && response.status === 404) {
             const body = await readJSON(response);
             const err = ErrorSchema.safeParse(body);
             if (err.success && err.data.error.code === "no_observation") {

@@ -1,6 +1,6 @@
 import { TARGETS } from "./contracts.ts";
 import type { Status } from "./contracts.ts";
-import { observations } from "./view-model.ts";
+import { observations, observationEndpoint } from "./view-model.ts";
 import { infrastructureStale } from "./infrastructure-contract.ts";
 import type { Infrastructure } from "./infrastructure-contract.ts";
 
@@ -24,6 +24,7 @@ export function sourceRows(report: Status | null, now: number) {
       .slice()
       .sort((a, b) => Date.parse(b.observed_at) - Date.parse(a.observed_at))[0];
     const source = metadata.find((s) => s.source_id === id);
+    const result = observationEndpoint(report, target?.dataset ?? newest?.dataset);
     const freshness = !newest
       ? "Unknown"
       : matches.some((o) => o.stale) ||
@@ -39,7 +40,7 @@ export function sourceRows(report: Status | null, now: number) {
       latest: newest?.observed_at ?? null,
       sourceDate: newest?.source_date ?? null,
       count:
-        report && report.endpoints.latest.state !== "error"
+        result && result.state !== "error"
           ? matches.length
           : null,
       freshness,

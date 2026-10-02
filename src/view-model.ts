@@ -29,14 +29,25 @@ export function collectionLabel(collector: Health["collector"]) {
   return "最終記録では無効（現在の設定は未確認）";
 }
 export function observations(report: Status | null): Observation[] {
-  return report?.endpoints.latest.state === "ok"
-    ? report.endpoints.latest.data!.data.filter((o) => o.data_origin === "live")
-    : [];
+  if (!report) return [];
+  const { latest, fx } = report.endpoints;
+  // The unfiltered response can be filled by 100 model rows. FX is authoritative
+  // only in its own response; do not duplicate or fall back to unfiltered FX.
+  return [
+    ...(latest.state === "ok"
+      ? latest.data!.data.filter((o) => o.dataset !== "fx")
+      : []),
+    ...(fx.state === "ok" ? fx.data!.data : []),
+  ].filter((o) => o.data_origin === "live");
+}
+export function observationEndpoint(report: Status | null, dataset?: string) {
+  return report?.endpoints[dataset === "fx" ? "fx" : "latest"];
 }
 export function sourceChecks(report: Status | null) {
   const rows = observations(report);
-  const unavailable = !report || report.endpoints.latest.state === "error";
   return TARGETS.map((target) => {
+    const result = observationEndpoint(report, target.dataset);
+    const unavailable = !result || result.state === "error";
     const matches = rows.filter(
       (o) => o.source.source_id === target.id && o.dataset === target.dataset,
     );
@@ -72,12 +83,13 @@ export function sourceChecks(report: Status | null) {
   });
 }
 export function assessment(report: Status | null, now: number) {
-  if (!report || report.endpoints.latest.state === "error")
-    return { label: "判定できない", tone: "error" };
-  const count = sourceChecks(report).filter((s) => s.confirmed).length;
+  const checks = sourceChecks(report);
+  const count = checks.filter((s) => s.confirmed).length;
   if (count === 2)
     return { label: "対象2ソースの公開観測を確認", tone: "success" };
   if (count === 1) return { label: "一部確認済み", tone: "warning" };
+  if (checks.some((s) => s.tone === "error"))
+    return { label: "判定できない", tone: "error" };
   if (now >= Date.parse(INITIAL_SLOT) + 15 * 60000)
     return { label: "要確認：まだ公開観測を確認できません", tone: "warning" };
   return {
@@ -90,16 +102,18 @@ export function assessment(report: Status | null, now: number) {
 }
 export function publicDataLabel(report: Status | null) {
   if (!report) return "現在確認できない";
-  const { health, latest } = report.endpoints;
-  if (latest.state === "ok" && latest.data!.data.length > 0) return "あり";
+  const { health, latest, fx } = report.endpoints;
+  if (observations(report).length > 0) return "あり";
   if (health.state === "ok" && health.data!.status === "public_data_available")
     return "あり";
   if (
     health.state === "ok" &&
     health.data!.status === "no_public_data" &&
     health.data!.datasets.length === 0 &&
-    (latest.state === "empty" ||
-      (latest.state === "ok" && latest.data!.data.length === 0))
+    [latest, fx].every(
+      (result) => result.state === "empty" ||
+        (result.state === "ok" && result.data!.data.length === 0),
+    )
   )
     return "なし";
   return "現在確認できない";

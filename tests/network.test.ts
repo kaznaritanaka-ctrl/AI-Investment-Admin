@@ -4,10 +4,12 @@ import { UPSTREAM, ENDPOINTS } from "../src/contracts.ts";
 import { handle } from "../src/worker.ts";
 import { publicFetch, json, NOW, fx } from "./fixtures.ts";
 
-it("固定4エンドポイントをGETし、404 no_observationのみ空観測とする", async () => {
+it("固定5エンドポイントをGETし、404 no_observationのみ空観測とする", async () => {
   const fetcher = vi.fn(publicFetch());
   const r = await collectStatus(fetcher, { now: () => NOW });
   expect(r.endpoints.latest.state).toBe("empty");
+  expect(r.endpoints.fx.state).toBe("empty");
+  expect(fetcher.mock.calls).toHaveLength(5);
   expect(fetcher.mock.calls.map(([url]) => url)).toEqual(
     Object.values(ENDPOINTS).map((e) => UPSTREAM + e.path),
   );

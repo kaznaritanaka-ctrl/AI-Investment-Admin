@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { report, fx, ai, NOW, failure, sourceMetadata } from "../fixtures.ts";
+import { report, fx, ai, NOW, failure, sourceMetadata, catalogReport } from "../fixtures.ts";
 import { infrastructureFixture } from "../infrastructure-fixtures.ts";
 test("初回予定のカウントダウンは予定時刻で止まり翌日へ移らない", async ({
   page,
@@ -84,6 +84,40 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/infrastructure", (route) =>
     route.fulfill({ json: infrastructureFixture(false) }),
   );
+});
+test("モデル100件でもECBを表示し、各ソースの取得失敗を独立表示する", async ({ page }) => {
+  let current = catalogReport();
+  await page.route("**/api/status", (route) => route.fulfill({ json: current }));
+  await page.goto("/");
+  const ecb = page.locator(".source-table tbody tr").filter({ hasText: "ECB" });
+  const models = page.locator(".source-table tbody tr").filter({ hasText: "Models.dev" });
+  await expect(ecb).toContainText("Healthy");
+  await expect(ecb).toContainText("2026/09/30 03:18:00 JST");
+  await expect(page.locator(".fx-table tbody tr")).toHaveCount(3);
+  await expect(page.locator(".ai-table tbody tr")).toHaveCount(100);
+  await expect(page.locator(".fx-table")).toContainText("1.234567890123456789");
+  await page.screenshot({ path: "work/screenshots/synthetic-ecb-100-models.png", fullPage: true });
+  await page.getByRole("button", { name: "Sources", exact: true }).click();
+  const source = page.locator(".source-inventory tbody tr").filter({ hasText: "ECB" });
+  await expect(source).toContainText("Healthy");
+  await expect(source.locator(".number")).toHaveText("3");
+  await page.getByRole("button", { name: "Overview", exact: true }).click();
+  await page.getByRole("checkbox", { name: "自動更新" }).uncheck();
+  current.endpoints.fx = failure("timeout");
+  await page.clock.fastForward(6000);
+  await page.getByRole("button", { name: "今すぐ更新" }).click();
+  await expect(ecb).toContainText("Unknown");
+  await expect(ecb).toContainText("未提供");
+  await expect(page.locator(".fx-table")).toHaveCount(0);
+  await expect(page.locator(".fx-panel")).toContainText("ECB · 未取得");
+  await expect(models).toContainText("Healthy");
+  current = catalogReport();
+  current.endpoints.latest = failure("timeout");
+  await page.clock.fastForward(6000);
+  await page.getByRole("button", { name: "今すぐ更新" }).click();
+  await expect(ecb).toContainText("Healthy");
+  await expect(page.locator(".fx-table tbody tr")).toHaveCount(3);
+  await expect(models).toContainText("Unknown");
 });
 test("空状態・readonly・JSON・スマートフォンでも横崩れしない", async ({
   page,

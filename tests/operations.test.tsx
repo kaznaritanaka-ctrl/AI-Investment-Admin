@@ -42,7 +42,7 @@ it("価格不変でもfresh live観測ならHealthy。36時間超・API staleは
     "Warning",
     "Warning",
   ]);
-  r.endpoints.latest.data!.data[0].stale = true;
+  r.endpoints.fx.data!.data[0].stale = true;
   expect(sourceRows(r, NOW)[0].freshness).toBe("Warning");
 });
 it("公開APIにないenable/policy期限/retentionは推測しない。未来sourceのダミー行なし", () => {

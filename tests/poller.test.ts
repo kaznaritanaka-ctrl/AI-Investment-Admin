@@ -49,11 +49,11 @@ it("429 Retry-After中は手動・自動・表示復帰でも再要求しない"
   expect(fetcher).toHaveBeenCalledTimes(2);
   p.stop();
 });
-it("上流endpointのRetry-Afterにも従う", async () => {
+it.each(["latest", "fx"] as const)("上流%sのRetry-Afterにも従う", async (endpoint) => {
   vi.useFakeTimers();
   vi.setSystemTime(NOW);
   const r = report();
-  r.endpoints.latest = {
+  r.endpoints[endpoint] = {
     state: "error",
     data: null,
     error_kind: "http",

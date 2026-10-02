@@ -64,11 +64,17 @@ describe("初動確認は実観測に限定する", () => {
         .confirmed,
     ).toBe(false);
   });
-  it("latestが失敗すれば判定不能、sourcesのみの失敗では実観測を消さない", () => {
+  it("取得失敗はソース別に判定し、sourcesのみの失敗では実観測を消さない", () => {
     const r = report([fx(), ai()]);
     r.endpoints.sources = failure();
     expect(assessment(r, NOW).tone).toBe("success");
     r.endpoints.latest = failure("timeout");
+    expect(assessment(r, NOW).label).toBe("一部確認済み");
+    expect(sourceChecks(r).map((s) => s.label)).toEqual([
+      "公開観測確認済み",
+      "取得エラー",
+    ]);
+    r.endpoints.fx = failure("timeout");
     expect(assessment(r, NOW).label).toBe("判定できない");
     expect(sourceChecks(r).map((s) => s.label)).toEqual([
       "取得エラー",
