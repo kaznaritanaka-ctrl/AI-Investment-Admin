@@ -1,4 +1,16 @@
-# 確認した公開API契約
+# 確認した公開APIとAdmin API契約
+
+## 日常運用コックピット追加（2026-09-30）
+
+既存`GET /api/status`のschema/path/取得・pollingは維持。追加は`GET /api/infrastructure`（no-store、GETのみ、queryなし）。形式は`admin-infrastructure-v1`。`fetched_at`、24hの`window`、`configuration`、`availability`、`workers`、`d1`、`r2`、`plan`のみを返す。各項目は`state / reason / http_status / retry_at`を持ち、失敗項目の値はnull。追加fieldのstripとUI検証は`src/infrastructure-contract.ts`で実施する。
+
+tokenなしは200の`token_not_configured / unavailable`、account未設定・不一致は`account_not_configured`。部分失敗も200のprojectionで返し、429は各項目とRetry-After headerに反映。upstream raw response/headers/例外messageは返さない。固定endpoint・最小permission・owner設定手順は[infrastructure.md](infrastructure.md)。
+
+Sourcesは既存public sourceのrights/version/coverage/limitationsとlive observationsを利用する。`enabled`、内部policyの現在状態、`valid_until`、review deadline、retentionは現行APIにないので未取得。future fieldを捏造せず、公開されていないsourceもrepositoryから埋め込まない。latest件数は応答内の最大100行という範囲を明記する。
+
+日常のfreshnessはAPI stale情報と最新observed_atの36時間基準を使う追加表示。初回予定の判定ロジックはそのまま折りたたみ内に残す。unchanged priceは異常ではない。公開APIからwatchdog/continuation run結果は取得できず、Cronから成功を推定しない。
+
+参照のみの追加確認：AI-Investment-APIsローカルHEAD `244af2b4d8097804463da28690dc8f5e7fcec314`の`src/api.ts`/`src/publication.ts`。以下は元の公開契約確認記録。
 
 参照コミット：[25f4983158d11dafcac32b9c52ea3e3936d0f651](https://github.com/kaznaritanaka-ctrl/AI-Investment-APIs/tree/25f4983158d11dafcac32b9c52ea3e3936d0f651)（2026-09-30確認）。参照repoは変更していません。
 

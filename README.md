@@ -1,225 +1,77 @@
-# AI Investment Research｜収集状況
+# AI Investment Research Admin
 
-初回Collector稼働の**公開結果だけ**を確認する、日本語の読み取り専用画面です。ブラウザ → 同じアプリのGET /api/status → 既存公開APIの順で読みます。Cloudflareログイン、APIトークン、DB、Dockerはローカル起動に不要です。
+AI-Investment-APIsの日常運用を確認する、個人用・**ワイドディスプレイ前提の管理画面**です。読み取り専用で、収集・設定変更の操作は提供しません。
 
-開発ブランチは **codex/wide-overview-layout**。mainへ未マージの場合、mainでgit pullするだけでは取得できません。
+本番Adminは **https://admin.ai-investment-research.net** にCustom Domainがあり、Cloudflare Accessで保護されています。**2026-09-30 21:38 JSTに承認済みコックピットversionへ100%切替済み**です。21:48 JSTに4つのread-only権限を持つruntime tokenの対象範囲を承認どおり修正し、Worker・D1・R2情報の実取得を確認しました。本番とGitの差分、残る未取得項目は[本番反映・検証記録](docs/production-deployment-plan.md)を参照してください。
 
-## ワイドディスプレイ前提の管理画面
+作業ブランチ：`codex/operations-cockpit`。取得済み最新`origin/main`の`5ed8eb6`から作成（ワイドUIの`7a744ff`はmainへ統合済み）。AI-Investment-APIsは参照のみで変更していません。
 
-個人用のワイドディスプレイを優先したOverviewです。左216pxの固定サイドバー、上部のstickyヘッダー、4つの小型ステータス、初回確認／Source Status、FX／AI API Pricesを横方向に配置します。1440px以上ではサイドバーを常時表示し、1920〜2560pxでもメイン領域の最大幅を狭く制限しません。主要情報をほぼスクロールせず確認できる密度にしています。
+## 画面
 
-Overviewだけが実装済みです。Sources・API・Data・Logs・Settingsはdisabled表示で、空の画面には移動しません。1280px未満は列を折り返し、狭い画面でも最低限の表示を維持します。スマートフォン優先のレイアウトではありません。
+- **Overview**：8つのsummary、Source Status、Recent public data（FX・AI価格）、Infrastructure summary、Attention / Review。初回確認、health.datasets、Raw JSON、Diagnosticsは折りたたみ式です。
+- **Sources**：公開APIのsource metadata、observed_at、source_date、latest応答内のlive観測件数、鮮度、公開rights/version、既知の制限。enabled/disabled・現在の内部policy・期限・retentionは現行公開APIで未提供なので「未取得」。未返却のGPU/OpenRouter等をrepository設定から推測しません。
+- **Infrastructure**：対象3 Workers、private/public D1、evidence R2のmetadata・集計値。Cron、Custom Domains、version/traffic、Observability、workers.dev/preview URL、requests/errors/CPU、D1 storage/rows、R2 storage/operationsを確認します。
+- Runs / Data / Releases / Rights / Settings：disabledの将来メニュー。架空のデータや空ページはありません。
 
-初回予定までのカウントダウンを表示し、予定を過ぎても対象を翌日に移しません。AI価格はモデルごとにinput/outputを併記し、複数の条件はすべて残します。追加の価格区分や課金条件は「全価格区分・条件」で確認できます。異なる通貨・単位を合算・換算しません。
+左216pxの固定サイドバー、stickyヘッダー、暗色テーマを継承しています。1440×900・1920×1080・2560×1440を主対象にし、通常のOverviewは1画面内、行数の多い価格表はパネル内をスクロールします。狭い画面は折返しで対応します。
 
-health.datasets・Raw JSON・Diagnosticsは通常閉じてあります。出典・ライセンス・診断コピーはDiagnostics内です。長い説明は各パネルの「i」から開けます。状態判定、公開API取得、60秒更新、Retry-After等の処理は従来と同じです。
+時刻はJST。価格はdecimal文字列を保持し、異なる通貨・課金単位を合算しません。複数のinput/output条件や追加区分は「全価格区分・条件」に残します。nullは0に変換しません。状態は色とHealthy / Warning / Unknownのラベルを併記します。
 
-## このPCで今すぐ起動
+## 取得経路と表示の意味
 
-Windows PowerShellで、次を1つずつ実行してください。
+```text
+Browser → GET /api/status → 既存公開APIの固定4 GET
+Browser → GET /api/infrastructure → Admin Worker Secret → 固定Cloudflare metadata GET / GraphQL query
+```
 
-~~~powershell
-Set-Location "C:\Users\Tanaka\Documents\Codex\2026-09-27\kaznaritanaka-ctrl-ai-investment-apis-ai\outputs\AI-Investment-Admin"
-~~~
+ブラウザからCloudflare APIへ直接接続しません。token、account ID、D1 ID、Cloudflare raw responseをclient bundleへ入れません。DB・R2 bindingはASSETS以外に追加していません。
 
-~~~powershell
+公開APIの60秒更新、手動更新、5秒の連打抑止、重複防止、非表示タブの停止、Retry-After、部分失敗時の表示は維持しています。Cloudflare情報は独立して5分更新し、手動更新は最短60秒です。上部の自動更新ON/OFF・手動更新は両系統に反映されますが、それぞれのcooldownを守ります。Infrastructureだけの更新ボタンもあります。
+
+HTTP応答成功、Collectorの最終処理記録、live観測の鮮度は別々です。`last_collector_completed_at`を「最終データ更新」とは表示しません。価格差がなくても正常な再観測ならHealthyです。日常の鮮度はAPIのstaleと最新observed_atの36時間基準を併用し、初回予定以降の確認という旧判定は折りたたみ内に維持しています。
+
+watchdog / continuationの実行結果・checkpointは公開APIで未提供です。Cloudflare Cronの存在、platform errors=0、処理記録だけから業務処理の成功を推測しません。権利期限・retention・review期限も取得できないため、Attentionへ確認範囲の不足として表示します。source_dateが前営業日でも観測時刻とは区別します。
+
+Cloudflare metricsは対象リソースの**直近24時間**のadaptive集計です。account全体のFree枠、UTC日次使用率、R2月次課金量ではありません。Workerの最終eventが古いだけで障害とは判定しません。画面のprojectionが15分超、R2 storage sampleが6時間超なら古い表示として警告します。Workers planはOwnerが確認日時付きで登録したmanual evidenceのみ表示し、subscription不在からFreeを推定しません。
+
+## ローカル起動
+
+Node 24以降 / pnpm 11.19.0。
+
+```powershell
 pnpm.cmd install --frozen-lockfile
-~~~
-
-~~~powershell
 pnpm.cmd dev
-~~~
+```
 
-ブラウザで **http://127.0.0.1:5173/** を開きます。PowerShellは開いたまま使います。ログイン・トークン入力はありません。サーバーは127.0.0.1だけで待ち受け、LANへ公開しません。
+http://127.0.0.1:5173/ を開きます。ログインやCloudflare tokenは不要です。Secret未設定時はInfrastructureに **Cloudflare metrics unavailable** と表示し、既存Overviewはそのまま動きます。起動した画面は既存公開APIをGETします。終了はCtrl+C。ローカル画面を閉じても本番CollectorのCronは変わりません。
 
-止めるには **Ctrl+C**。PowerShellを閉じるとローカルGUIは止まります。ブラウザのタブを閉じた場合も、このGUIは監視しません。**ローカルGUIを閉じても、Cloudflare Collectorは独立して動作し、そのCron設定は変わりません。**
+## 検証
 
-5173が使用中なら既にこのアプリを起動しているターミナルがないか確認してください。別ポートへ自動変更しないためURLは固定です。
-
-## 初めてcloneする場合
-
-前提：Git、Node.js 24.19.0、pnpm 11.19.0。PowerShellの制約を避けるため、pnpm.cmd表記で実行します。
-
-~~~powershell
-node --version
-~~~
-
-~~~powershell
-pnpm.cmd --version
-~~~
-
-~~~powershell
-Set-Location "$env:USERPROFILE\Documents"
-~~~
-
-~~~powershell
-git clone --branch codex/wide-overview-layout https://github.com/kaznaritanaka-ctrl/AI-Investment-Admin.git
-~~~
-
-~~~powershell
-Set-Location ".\AI-Investment-Admin"
-~~~
-
-~~~powershell
-pnpm.cmd install --frozen-lockfile
-~~~
-
-~~~powershell
-pnpm.cmd dev
-~~~
-
-**http://127.0.0.1:5173/** を開きます。
-
-## 更新するとき
-
-起動中ならCtrl+Cで停止し、**実際のクローン先フォルダ**に移動してから以下を実行します。未マージの間は開発ブランチを更新します。
-
-~~~powershell
-git status --short
-~~~
-
-自分で変更したファイルが出た場合は、消さずに内容を確認してください。
-
-~~~powershell
-git switch codex/wide-overview-layout
-~~~
-
-~~~powershell
-git pull --ff-only origin codex/wide-overview-layout
-~~~
-
-~~~powershell
-pnpm.cmd install --frozen-lockfile
-~~~
-
-~~~powershell
-pnpm.cmd dev
-~~~
-
-ブラウザの http://127.0.0.1:5173/ を再読み込みします。mainへのマージをPRで確認した後は、mainへ切り替え、mainをpullする方法に変更できます。
-
-## 画面の見方
-
-| 表示 | 意味 |
-|---|---|
-| 取得成功 | APIの応答を読めた。収集成功を意味しない |
-| 実行報告未受信 | collection_enabled=0かつ最終処理記録=null。現在停止中とは断定しない |
-| Collectorの最終処理記録 | watchdogや補助処理でも更新され得る。最終収集成功時刻ではない |
-| 最終記録では有効 | public DBのcollection_enabled=1。現在のCloudflareスイッチの直接確認ではない |
-| まだ未確認／未取得 | 公開観測がまだ確認できない。no_public_data・空datasets・latestの404 no_observationは初動前の正常な空状態 |
-| 古い観測のみ | 対象ソースのobserved_atが初回予定より前。ECBのsource_dateが前日という理由だけではこう判定しない |
-| 公開観測確認済み | 対象のsource_id・datasetに一致するlive観測を初回予定以降に1件以上確認 |
-| 一部確認済み | ECB、Models.devの片方を確認 |
-| 対象2ソースの公開観測を確認 | 両ソースを各1件以上確認。全モデル・全項目の完全取得やR2保存の確認ではない |
-| 要確認 | 予定から15分以上経っても対象観測が未確認。原因を断定しない |
-| 取得エラー／判定できない | 接続失敗、429、5xx、形式不正等。失敗した欄の前回値は消し、正常取得した別欄は残す |
-
-初回対象は **2026-09-30 03:17 JST** で固定し、翌日へ自動変更しません。日次03:17、watchdog03:47 JSTは設定に基づく参考予定で、Cloudflareの現行設定を照会した結果ではありません。
-
-最初に取得し、その後60秒ごとに更新します。「今すぐ更新」は読み直しだけで、収集を実行しません。重複・5秒以内の連打を防止し、429のRetry-Afterを優先します。自動更新OFFも使えます。非表示タブでは自動取得を停止し、表示復帰時に待機時間を守って再取得します。上流のタイムアウトは本文読み取りも含め10秒、画面側は12秒です。
-
-時刻はJST、元の時刻文字列はJSON欄に表示。観測値はメモリ内だけで扱い、localStorage・Service Worker・CDNキャッシュには保存しません。診断コピー操作はクリップボードへ現在の確認結果を出します。
-
-FX・価格のdecimal文字列はそのまま表示。nullや欠けた項目は「未提供」で、0や架空の価格・モデル名に補完しません。
-
-**公開中の観測件数（API集計）**はhealth.datasetsのcountです。今日の収集件数・DB全件数・R2保存件数ではありません。latestは最大100系列で、全履歴の監査には使えません。
-
-monitor_connected=0は「外部監視未接続」です。このGUIの作成で監視接続済みに変更していません。
-
-## このGUIでは分からないもの
-
-private側の失敗理由、R2保存結果、全モデル取得完了、Cloudflareの現在のCron・スイッチ・プラン・Access設定。Collector実行・停止・再実行、編集・削除、SQL、Cloudflare管理API接続はありません。DB/R2のIDやSecretsも不要です。
-
-出典・取得範囲・制約・利用条件・MIT通知は「Diagnostics」で確認できます。Models.devは二次カタログ、USD/JPYの計算値はECB公表クロスではありません。契約と参照コミットは [docs/api-contract.md](docs/api-contract.md) に記録しています。
-
-## 開発・検証
-
-AI-Investment-Adminフォルダ内で実行します。通常のcheck・test・buildは本番APIへ通信しません。
-
-~~~powershell
+```powershell
 pnpm.cmd check
-~~~
-
-~~~powershell
 pnpm.cmd test
-~~~
-
-~~~powershell
 pnpm.cmd build
-~~~
-
-buildはローカル生成だけで、Cloudflareへアップロードしません。
-
-WindowsにEdgeがある場合のブラウザテスト：
-
-~~~powershell
-$env:PLAYWRIGHT_CHANNEL = "msedge"
-~~~
-
-~~~powershell
 pnpm.cmd test:browser
-~~~
+pnpm.cmd deploy:dry-run
+```
 
-Chromiumを使う場合は、PLAYWRIGHT_CHANNELを未設定にし、先に次を実行します。
+通常のテスト・buildは本番APIへアクセスしません。synthetic fixtureは`tests/`だけです。ブラウザテストは専用localhost:5174で両Admin endpointをfixtureに差し替え、通常の5173サーバーを再利用しません。WindowsでEdgeを使う場合は`$env:PLAYWRIGHT_CHANNEL='msedge'`。Wranglerのローカルログ・registryへの書込みが制限された環境では`XDG_CONFIG_HOME`と`WRANGLER_LOG_PATH`を`work/`内へ指定できます。
 
-~~~powershell
-pnpm.cmd exec playwright install chromium
-~~~
+本番APIを読む既存の`pnpm.cmd smoke:live`、新しい`pnpm.cmd smoke:infrastructure --allow-network`は**明示opt-inの別コマンド**です。CIには含めません。後者は承認済みread-only tokenとaccount設定をプロセス環境から読み、ログには件数・状態だけを出します。今回このCLIへtokenを渡していません。live確認は本番Adminの既存Worker Secretを使う画面表示と、未認証HTTPのAccess転送確認で行いました。
 
-合成データはtests内に限定し、ブラウザテスト時だけ/api/statusを置き換えます。スクリーンショットはwork/screenshotsへ出ます（合成データ、Git対象外）。
+[検証記録](docs/verification.md)に結果とsynthetic screenshotを記載しています。buildはローカル生成のみでdeployを行いません。
 
-実公開APIの疎通は明示的な別コマンドです。固定4エンドポイントを各1回GETし、CollectorやDBには書き込みません。生の価格レスポンスをファイル保存しません。
+## 本番の接続状態と今後の設定変更
 
-~~~powershell
-pnpm.cmd smoke:live
-~~~
+必要なpermissionとtoken/Secretの管理手順は[Cloudflare Infrastructure設計・設定手順](docs/infrastructure.md)にあります。現在の本番bindingはASSETS、非secretのCF_ACCOUNT_ID、CLOUDFLARE_READ_TOKEN Secretです。Secretは所有者が登録し、今回のversionにCloudflare内で継承しました。token値をCodexへ渡す必要はありません。
 
-dev・previewの画面を開くと、画面の動作として本番公開APIへGETします。previewはbuild後に次で起動し、**http://127.0.0.1:4173/** を開きます。
+- 必須：`CLOUDFLARE_READ_TOKEN`（Worker Secret）、`CF_ACCOUNT_ID`（対象accountの非secret変数）。
+- 任意：`WORKERS_PLAN`、`WORKERS_PLAN_VERIFIED_AT`、`WORKERS_PLAN_EVIDENCE`（確認済みplanのmanual evidence、API検証と区別）。
+- 使用中の4権限：Workers **Metadata Read-Only** / Account Analytics Read / D1 Read / Workers R2 Storage Read。対象accountの「アカウント全体」に限定。Cron・Custom Domainを含め実取得でき、**Workers Scripts Readは追加していません**。
+- 取得済み`origin/main`の`routes=[]`と本番Custom Domainのdriftに対し、作業treeの`wrangler.jsonc`は既存`admin.ai-investment-research.net`（`custom_domain: true`）、対象account、非secretの`CF_ACCOUNT_ID`を宣言しています。既存Domain/Access自体は変更していません。今回commit/push/mergeはしておらず、共有Gitとの差分は残ります。**今後のtoken・Secret・設定変更・deployにも、対象操作の所有者承認が必要です。**
 
-~~~powershell
-pnpm.cmd preview
-~~~
+現在の本番version、Custom Domain差分、deploy対象、dry-run結果、Secret/variable手順、rollback、deploy後の確認は[本番反映計画](docs/production-deployment-plan.md)を参照してください。`pnpm.cmd build`の後に`pnpm.cmd deploy:dry-run`を実行します。dry-runはローカル検証で、token権限・Access実経路・本番CPUの検証ではありません。
 
-Node 24.19.0 / pnpm 11.19.0で検証。Vite 8.3.1、Cloudflare Vite plugin 1.62.0、Wrangler 4.143.0、React 19.3.0を固定し、lockfileを含めています。pluginのpeer条件（Vite ^8、Wrangler ^4.143.0）を確認済み。ローカルpnpmストア.pnpm-storeはGit対象外です。
+現在の`workers_dev=false` / `preview_urls=false` / CSP等を維持します。Collector操作、source enable、private D1/R2 binding、DB/R2本文の取得、write、Secret値の取得、notification、deploy、migration、Access/DNS変更は実装していません。
 
-CIも型検査・合成テスト・build・ブラウザテストだけで、live smoke・Cron・デプロイは実行しません。
-
-## Cloudflare配置手順（今回は未実施）
-
-初期設定：Worker名 **ai-investment-admin**、workers_dev=false、preview_urls=false、routes=[]。D1、R2、Secrets、サービスbinding、Cronなし。候補ドメインadmin.ai-investment-research.netは未公開。**Accessは未設定・未検証です。**
-
-公開承認後にだけ、次の順番で作業します。
-
-1. Cloudflare Zero TrustのAccessに自己ホスト型アプリを作り、admin.ai-investment-research.net **全体**を対象にする。/apiだけに限定せず、HTML・/assets/*・/api/*をすべて保護する。
-2. 本人のメールアドレス／IDだけのAllow条件を設定。Everyone・Bypassを作らない。認証方式・プランは所有者が確認する。未確認のAccount ID等をrepoに推測記入しない。
-3. 別のsubdomain、Workers Buildsの自動preview、workers.dev等の迂回公開がないことを確認する。
-4. Adminのwrangler.jsoncだけでroutesへ { "pattern": "admin.ai-investment-research.net", "custom_domain": true } を追加する案をレビュー。workers_devとpreview_urlsはfalseのまま。API/Collector側には変更を加えない。
-5. check、test、build、下記dry-runを実行する。
-6. Access保護設定と公開承認が揃ってから、正しいCloudflareアカウントでログイン・whoami確認し、Adminだけをデプロイする。custom domainのDNS登録が発生し得るため、今回は実行しない。
-7. 公開後、本人は表示でき、ログアウト／シークレットウィンドウや別ユーザーではHTML・実際の/assetsファイル・/api/statusを取得できないことを各々確認する。workers.devとpreview URLも迂回できないことを確認する。Access未設定を保護済みと扱わない。
-
-配置前のローカル検証：
-
-~~~powershell
-pnpm.cmd exec wrangler deploy --dry-run --config dist/ai_investment_admin/wrangler.json
-~~~
-
-**承認・Access設定後だけ**実行するコマンド：
-
-~~~powershell
-pnpm.cmd exec wrangler login
-~~~
-
-~~~powershell
-pnpm.cmd exec wrangler whoami
-~~~
-
-~~~powershell
-pnpm.cmd exec wrangler deploy --config dist/ai_investment_admin/wrangler.json
-~~~
-
-このアプリは追加のデータ保存基盤や常駐監視を使いません。通常、開いている1画面あたり60秒ごとに上流4 GETです。通信・Workerの利用量は発生し得ますが、有料契約は作成していません。
-
-公式資料：[Cloudflare Vite plugin](https://developers.cloudflare.com/workers/vite-plugin/)、[Static Assets](https://developers.cloudflare.com/workers/vite-plugin/reference/static-assets/)、[Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/self-hosted-public-app/)、[ViteのNode要件](https://vite.dev/guide/)。
-
-実施結果は [docs/verification.md](docs/verification.md) に記録します。
+契約の詳細：[公開APIとAdmin API契約](docs/api-contract.md)。

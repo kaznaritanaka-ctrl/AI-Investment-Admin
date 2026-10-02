@@ -164,6 +164,120 @@ time {
 .app-shell {
   min-height: 100vh;
 }
+
+/* Daily cockpit extends the existing wide, dense dashboard system. */
+.cockpit-stats {
+  gap: 8px;
+  margin: 8px 0;
+}
+.cockpit-stats .stat {
+  min-height: 76px;
+  padding: 8px 11px;
+}
+.cockpit-stats .stat-value {
+  font-size: 21px;
+  margin: 4px 0 3px;
+  min-height: 25px;
+}
+.stat-value small {
+  font-size: 11px;
+  margin-left: 6px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.processing-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 20px;
+  color: var(--muted);
+  font-size: 10px;
+  margin: 7px 0 10px;
+}
+.processing-strip time {
+  font-size: 10px;
+}
+.attention-panel {
+  margin-bottom: 10px;
+}
+.attention-panel .section-head {
+  min-height: 32px;
+  padding: 7px 12px;
+}
+.attention-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 28px;
+  padding: 8px 25px;
+  margin: 0;
+  font-size: 10px;
+  max-height: 105px;
+  overflow: auto;
+  color: #c9c3aa;
+}
+.page-intro {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 12px 0;
+}
+.infra-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.infra-toolbar strong {
+  color: #dae7ed;
+  font-weight: 500;
+}
+.infra-toolbar small {
+  display: block;
+  margin-top: 5px;
+}
+.source-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 12px 0;
+}
+.source-details-grid .detail-content {
+  font-size: 12px;
+}
+.source-inventory {
+  min-width: 1060px;
+}
+.workers-table {
+  min-width: 1080px;
+}
+.workers-table th:nth-child(2) {
+  width: 20%;
+}
+.workers-table th:nth-child(5) {
+  width: 12%;
+}
+.metric-list {
+  margin: 12px 0 0;
+  font-size: 11px;
+}
+.metric-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding: 7px 0;
+}
+.metric-list dt {
+  color: var(--muted);
+}
+.metric-list dd {
+  margin: 0;
+  text-align: right;
+}
+.infra-issues {
+  margin-top: 12px;
+}
+.infrastructure-page > .panel > .detail-content {
+  font-size: 12px;
+}
 .skip-link {
   position: fixed;
   top: -80px;
@@ -1110,5 +1224,174 @@ footer a {
   }
   .heading-tools > .small {
     font-size: 9px;
+  }
+}
+
+.cockpit-stats {
+  gap: 8px;
+  margin: 8px 0;
+}
+.detail-strip {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.detail-strip > .initial-panel > summary {
+  padding: 9px 12px;
+  min-height: 38px;
+  border: 0;
+}
+.detail-strip > .initial-panel > summary h2 {
+  font-size: 11px;
+  font-weight: 500;
+}
+.detail-strip > .initial-panel[open] {
+  grid-column: 1 / -1;
+}
+.detail-strip > .initial-panel[open] > .detail-content {
+  padding: 4px 12px;
+}
+.overview-row.status-row {
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.infrastructure-summary .section-head,
+.sources-panel .section-head {
+  padding: 8px 12px;
+  min-height: 36px;
+}
+.infrastructure-summary td {
+  padding: 5px 10px;
+}
+.infrastructure-summary td small {
+  font-size: 8px;
+}
+.source-table td {
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+.sources-panel .panel-note {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+.data-row .section-head {
+  padding: 8px 12px;
+  min-height: 36px;
+}
+.data-row .data-scroll {
+  max-height: 178px;
+}
+.data-row td {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.data-row .empty {
+  padding: 12px;
+}
+.infrastructure-summary .panel-note {
+  padding: 5px 10px;
+}
+@media (min-width: 1920px) {
+  .cockpit-stats {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+  .cockpit-stats .stat-value {
+    font-size: 20px;
+  }
+  .cockpit-stats .stat-value time {
+    font-size: 11px;
+  }
+  .data-row .data-scroll {
+    max-height: 216px;
+  }
+  .attention-list {
+    max-height: 130px;
+    font-size: 11px;
+  }
+}
+@media (min-width: 1280px) and (max-width: 1919px) {
+  main {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .refresh-status {
+    min-height: 16px;
+  }
+  .attention-panel .section-head {
+    min-height: 28px;
+    padding: 5px 12px;
+  }
+  .attention-list {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    gap: 2px 28px;
+  }
+  footer {
+    margin-top: 6px;
+  }
+  .cockpit-stats .stat {
+    min-height: 66px;
+    padding: 6px 10px;
+  }
+  .cockpit-stats .stat-value {
+    font-size: 19px;
+    min-height: 22px;
+    margin: 2px 0;
+  }
+  .cockpit-stats .stat-value time {
+    font-size: 11px;
+  }
+  .infrastructure-summary td {
+    padding: 3px 9px;
+  }
+  .infrastructure-summary .section-head,
+  .sources-panel .section-head,
+  .data-row .section-head {
+    min-height: 32px;
+    padding: 6px 11px;
+  }
+  .overview-row,
+  .overview-row.status-row {
+    margin-bottom: 8px;
+  }
+  .data-row td {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  .source-table td {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+  .data-row .data-scroll {
+    max-height: 152px;
+  }
+}
+@media (max-width: 1279px) {
+  .overview-row.status-row,
+  .source-details-grid {
+    grid-template-columns: 1fr;
+  }
+  .attention-list {
+    grid-template-columns: 1fr;
+    max-height: 160px;
+  }
+}
+@media (max-width: 959px) {
+  .sidebar {
+    flex-wrap: wrap;
+  }
+  .sidebar nav {
+    display: flex;
+    gap: 4px;
+  }
+}
+@media (max-width: 599px) {
+  .detail-strip {
+    grid-template-columns: 1fr;
+  }
+  .metric-list > div {
+    flex-direction: column;
+  }
+  .metric-list dd {
+    text-align: left;
   }
 }

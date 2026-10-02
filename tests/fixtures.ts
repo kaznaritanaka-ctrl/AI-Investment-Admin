@@ -3,6 +3,28 @@ import { StatusSchema, UPSTREAM } from "../src/contracts.ts";
 import type { Status, Observation } from "../src/contracts.ts";
 export const NOW = Date.parse("2026-09-29T18:35:00Z");
 export const STAMP = "2026-09-29T18:18:00.000Z";
+export function sourceMetadata(source_id: string) {
+  return {
+    source_id,
+    operator: "Synthetic " + source_id,
+    source_url: "https://fixture.test/" + source_id,
+    documentation_url: null,
+    license_url: "https://fixture.test/license",
+    attribution: "Synthetic source attribution",
+    rights: {
+      automated_access: "allowed" as const,
+      public_display: "allowed" as const,
+      commercial_reuse:
+        source_id === "models_dev"
+          ? ("review_required" as const)
+          : ("allowed" as const),
+    },
+    rights_version: "synthetic-policy-v1",
+    conditions: ["Synthetic attribution required"],
+    coverage: ["Synthetic selected observations"],
+    limitations: ["Synthetic coverage limitation; not the whole market"],
+  };
+}
 export function health() {
   return {
     status: "no_public_data",

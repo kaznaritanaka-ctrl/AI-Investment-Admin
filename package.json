@@ -11,10 +11,12 @@
     "dev": "vite --host 127.0.0.1 --port 5173 --strictPort",
     "check": "tsc --noEmit",
     "test": "vitest run",
-    "build": "vite build",
+    "build": "vite build && node scripts/verify-client-bundle.mjs",
+    "deploy:dry-run": "node node_modules/wrangler/bin/wrangler.js deploy --dry-run --config dist/ai_investment_admin/wrangler.json --outdir work/deploy-dry-run",
     "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
     "test:browser": "playwright test",
-    "smoke:live": "node scripts/live-smoke.mjs --allow-network"
+    "smoke:live": "node scripts/live-smoke.mjs --allow-network",
+    "smoke:infrastructure": "node scripts/infrastructure-smoke.mjs"
   },
   "dependencies": {
     "react": "19.3.0",

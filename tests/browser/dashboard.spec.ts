@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { report, fx, ai, NOW, failure } from "../fixtures.ts";
+import { report, fx, ai, NOW, failure, sourceMetadata } from "../fixtures.ts";
+import { infrastructureFixture } from "../infrastructure-fixtures.ts";
 test("初回予定のカウントダウンは予定時刻で止まり翌日へ移らない", async ({
   page,
 }) => {
@@ -8,6 +9,7 @@ test("初回予定のカウントダウンは予定時刻で止まり翌日へ�
     route.fulfill({ json: report() }),
   );
   await page.goto("/");
+  await page.getByTestId("initial-details").locator(":scope > summary").click();
   await expect(page.getByRole("timer")).toHaveText("00:01:01");
   await page.clock.setFixedTime(new Date("2026-09-29T18:17:00Z"));
   await expect(page.getByRole("timer")).toHaveCount(0);
@@ -79,6 +81,9 @@ test("価格条件・単位が複数でもinputを1件に潰さず追加区分�
 });
 test.beforeEach(async ({ page }) => {
   await page.clock.install({ time: new Date(NOW) });
+  await page.route("**/api/infrastructure", (route) =>
+    route.fulfill({ json: infrastructureFixture(false) }),
+  );
 });
 test("空状態・readonly・JSON・スマートフォンでも横崩れしない", async ({
   page,
@@ -125,6 +130,7 @@ test("両ソース・decimal・null価格・更新による消失とエラー", 
     return route.fulfill({ json: current });
   });
   await page.goto("/");
+  await page.getByTestId("initial-details").locator(":scope > summary").click();
   await expect(
     page
       .getByTestId("initial-verdict")
@@ -160,6 +166,7 @@ test("一部失敗でもFXと取得成功したhealthを表示", async ({ page }
   r.endpoints.sources = failure();
   await page.route("**/api/status", (route) => route.fulfill({ json: r }));
   await page.goto("/");
+  await page.getByTestId("initial-details").locator(":scope > summary").click();
   await expect(
     page
       .getByTestId("initial-verdict")
@@ -231,7 +238,7 @@ for (const viewport of [
       await page.route("**/api/status", (route) => route.fulfill({ json: r }));
       await page.goto("/");
       await expect(page.getByText("取得成功", { exact: true })).toBeVisible();
-      for (const name of ["Sources", "API", "Data", "Logs", "Settings"])
+      for (const name of ["Runs", "Data", "Releases", "Rights", "Settings"])
         await expect(
           page.getByRole("button", { name: new RegExp("^" + name + " ") }),
         ).toBeDisabled();
@@ -259,4 +266,93 @@ for (const viewport of [
       ).toBeLessThanOrEqual(viewport.width);
     });
   }
+}
+
+test("Sources・Infrastructureが動作し将来ページはdisabled、token未設定でもOverview維持", async ({
+  page,
+}) => {
+  await page.route("**/api/status", (route) =>
+    route.fulfill({ json: report([fx(), ai()]) }),
+  );
+  await page.goto("/");
+  await expect(
+    page.getByText("Cloudflare metrics unavailable", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Sources", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Sources 公開ソース" }),
+  ).toBeVisible();
+  await expect(page.locator(".source-inventory")).toContainText(
+    "有効・無効：未取得",
+  );
+  await expect(page.locator(".source-inventory")).toContainText(
+    "2026/09/30 03:18:00 JST",
+  );
+  await page
+    .getByRole("button", { name: "Infrastructure", exact: true })
+    .click();
+  await expect(
+    page.getByText("Cloudflare metrics unavailable", { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".workers-table")).toContainText("未取得");
+  await page.getByRole("button", { name: "Overview", exact: true }).click();
+  await expect(page.locator(".ai-table")).toContainText("0.123456789012345678");
+});
+
+for (const width of [1440, 1920]) {
+  test(`cockpit synthetic ${width}: metadata・null・partial・staleを表示`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: width === 1440 ? 900 : 1080 });
+    const r = infrastructureFixture();
+    r.workers[1].metrics.errors = null;
+    r.workers[1].metrics.state = "unavailable";
+    r.workers[1].metrics.reason = "permission_denied";
+    r.availability = "partial";
+    const publicReport = report([fx(), ai()]);
+    publicReport.endpoints.sources.data!.data = [
+      sourceMetadata("ecb"),
+      sourceMetadata("models_dev"),
+    ];
+    await page.route("**/api/infrastructure", (route) =>
+      route.fulfill({ json: r }),
+    );
+    await page.route("**/api/status", (route) =>
+      route.fulfill({ json: publicReport }),
+    );
+    await page.goto("/");
+    await expect(page.locator(".cockpit-stats .stat")).toHaveCount(8);
+    await page.screenshot({
+      path: `work/screenshots/cockpit-overview-${width}.png`,
+      fullPage: true,
+    });
+    expect(
+      await page.evaluate(() => document.documentElement.scrollHeight),
+    ).toBeLessThanOrEqual(width === 1440 ? 900 : 1080);
+    await page.getByRole("button", { name: "Sources", exact: true }).click();
+    await page.screenshot({
+      path: `work/screenshots/cockpit-sources-${width}.png`,
+      fullPage: true,
+    });
+    await page
+      .getByRole("button", { name: "Infrastructure", exact: true })
+      .click();
+    await expect(page.locator(".workers-table")).toContainText("23 / 未取得");
+    await expect(page.locator(".workers-table")).toContainText(
+      "Unknown · 権限不足",
+    );
+    await page.screenshot({
+      path: `work/screenshots/cockpit-infrastructure-${width}.png`,
+      fullPage: true,
+    });
+    await page.getByRole("checkbox", { name: "自動更新" }).uncheck();
+    await page.clock.fastForward(900001);
+    await expect(
+      page.getByText("Stale（15分超前）", { exact: false }),
+    ).toBeVisible();
+    expect(await page.evaluate(() => localStorage.length)).toBe(0);
+    expect(await page.content()).not.toContain(
+      "synthetic-server-secret-sentinel",
+    );
+  });
 }

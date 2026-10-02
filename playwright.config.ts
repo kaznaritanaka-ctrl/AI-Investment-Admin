@@ -4,7 +4,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   use: {
-    baseURL: "http://127.0.0.1:5173",
+    baseURL: "http://127.0.0.1:5174",
     ...(process.env.PLAYWRIGHT_CHANNEL
       ? { channel: process.env.PLAYWRIGHT_CHANNEL }
       : {}),
@@ -12,9 +12,9 @@ export default defineConfig({
   },
   webServer: {
     command:
-      "node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 --strictPort",
-    url: "http://127.0.0.1:5173",
-    reuseExistingServer: !process.env.CI,
+      "node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5174 --strictPort",
+    url: "http://127.0.0.1:5174",
+    reuseExistingServer: false,
     timeout: 60000,
   },
   reporter: "list",
