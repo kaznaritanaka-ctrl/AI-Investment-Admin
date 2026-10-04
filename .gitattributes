@@ -1,0 +1,2 @@
+# Keep verified release evidence byte-for-byte across checkout platforms.
+docs/releases/*.json -text

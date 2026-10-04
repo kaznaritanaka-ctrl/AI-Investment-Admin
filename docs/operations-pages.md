@@ -42,3 +42,5 @@ Cloudflare Builds triggerなし、Pagesなし、GitHub hooks/deployments各0、C
 今回のAdminは資料/配信metadataだけの差分で、画面code・binding・Access変更なし。通知判定・未適用0006・dry-run・復旧検証はAPI repoの別commitで扱います。Adminの追加deployは不要です。元配信の合成browser検証と本番8ページGET/150件ページ送り/モバイル確認は配信証跡に保持しています。新しい7日間の自然収集実績を検証済みとは扱いません。
 
 2026-10-04のローカル再検証は `pnpm check`、単体8 file/93件、Vite build/client境界、Wrangler `deploy:dry-run`、既存browser14件が成功しました。browserは `PLAYWRIGHT_CHANNEL=msedge` でlocalhost:5174の合成データだけを使用しました。標準Chromiumは未導入のため初回は起動できず、既存Edgeによる実行で解消しています。今回の本番画面の再配信・新しい実通知・live収集はありません。
+
+Gitに保存したevidence/成果物manifestのbyte digestも原本と一致しました。`docs/releases/*.json` は `.gitattributes` で改行変換の対象外とし、別環境のcheckoutでも既存台帳のSHA-256を保持します。
