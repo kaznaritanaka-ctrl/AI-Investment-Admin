@@ -1,8 +1,11 @@
 import { collectStatus } from "./network.ts";
 import { collectInfrastructure } from "./infrastructure.ts";
 import type { InfrastructureEnv } from "./infrastructure.ts";
+import { adminProxy } from "./admin-proxy.ts";
+import type { AdminReadService } from "./admin-proxy.ts";
 type Env = InfrastructureEnv & {
   ASSETS: { fetch(request: Request): Promise<Response> };
+  ADMIN_READ?: AdminReadService;
 };
 const json = (body: unknown, status = 200, more: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), {
@@ -26,6 +29,17 @@ export async function handle(
   const url = new URL(request.url);
   if (request.method !== "GET")
     return json({ error: "method_not_allowed" }, 405, { Allow: "GET" });
+  if (url.pathname.startsWith("/api/") && !["/api/status", "/api/infrastructure"].includes(url.pathname)) {
+    const local = ["localhost", "127.0.0.1"].includes(url.hostname);
+    const origin = request.headers.get("origin");
+    if ((!local && url.hostname !== "admin.ai-investment-research.net") ||
+        request.headers.get("sec-fetch-site") === "cross-site" ||
+        (origin !== null && origin !== url.origin))
+      return json({ error: "forbidden" }, 403);
+    const response = await adminProxy(url, env.ADMIN_READ);
+    const result = json(await response.json(), response.status);
+    return result;
+  }
   if (url.search !== "") return json({ error: "query_not_allowed" }, 400);
   if (url.pathname === "/api/infrastructure") {
     // Access protects production. These checks additionally reject cross-site browser

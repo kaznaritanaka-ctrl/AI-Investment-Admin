@@ -39,6 +39,10 @@ if (
   config.preview_urls !== false ||
   config.d1_databases?.length ||
   config.r2_buckets?.length ||
+  config.services?.length !== 1 ||
+  config.services[0].binding !== "ADMIN_READ" ||
+  config.services[0].service !== "ai-investment-collector" ||
+  config.services[0].entrypoint !== "AdminRead" ||
   config.triggers?.crons?.length
 )
   throw new Error(

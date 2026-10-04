@@ -20,6 +20,13 @@
     "run_worker_first": ["/api", "/api/*"],
     "not_found_handling": "none",
   },
+  "services": [
+    {
+      "binding": "ADMIN_READ",
+      "service": "ai-investment-collector",
+      "entrypoint": "AdminRead",
+    },
+  ],
   "observability": {
     "enabled": false,
   },
