@@ -1,6 +1,6 @@
 # Overview整理と管理ページ
 
-2026-10-04の所有者承認プランを実装したローカル候補です。Collector側は codex/admin-read-projection と組み合わせます。本番migration・設定変更・deployはまだ承認・実行の対象です。
+2026-10-04の所有者承認で本番Admin 97277de / version 51e3f59d-1586-4507-8370-fdca8823e9f4を100%配信済みです。Collectorはa534ff0 / version 764bb171-582b-47a0-ad40-5d6aadc61ee6、private 0005と台帳5件も反映・検証済みです。
 
 | ページ | 内容 |
 |---|---|
@@ -21,7 +21,7 @@ JSTを標準とし、UTC切り替えと元UTCのツールチップを用意し�
 
 新しいGETは /api/overview、/api/sources、/api/runs、/api/data、/api/releases、/api/rights、/api/settings。runs/dataは /:id も受け付けます。従来の /api/status と /api/infrastructure を保持します。Admin自体にD1/R2はbindせず、ADMIN_READ → ai-investment-collector#AdminRead のDTOだけを返します。既存Access、host/origin、GET-only、CSP、no-storeを維持します。
 
-Releasesの過去3記録は確認済みの証跡だけを候補SQLにまとめました。Cloudflareのversionと一致しないSHAを推測しません。台帳の更新機能は画面/APIにありません。Operatorの配信手順でハッシュ/commit/tree/検証を照合した追記だけを行います。
+Releasesには確認済みの過去3件と今回のCollector/Admin、計5件を記録済みです。Cloudflareのversionと一致しないSHAを推測しません。台帳の更新機能は画面/APIにありません。Operatorの配信手順でハッシュ/commit/tree/検証を照合した追記だけを行います。
 
 ## 検証と反映
 
@@ -29,4 +29,16 @@ Releasesの過去3記録は確認済みの証跡だけを候補SQLにまとめ�
 
 ブラウザテストは専用5174を使います。Windowsの制限付き環境で開発サーバーの終了待ちに問題が出る場合は、別途5174のViteを起動し、PLAYWRIGHT_EXTERNAL_SERVER=true でテストを実行して、起動したサーバーだけを終了します。テストは外部HTTPを遮断し、synthetic画面を本番の検証結果として扱いません。
 
-実行順序は、private 0005 → CollectorのAdminRead → Adminのservice binding → 承認済み台帳追記です。それぞれ直前に所有者確認を行います。公開APIの配信やpublic D1の変更は不要です。APIリポジトリの docs/admin-read.md に詳細と復旧手順があります。
+完了した反映順序は、private 0005 → CollectorのAdminRead → Adminのservice binding → 承認済み台帳追記です。それぞれ直前承認・検証済みです。公開APIの配信やpublic D1の変更は不要です。APIリポジトリの docs/admin-read.md に詳細と復旧手順があります。
+
+## Git保全と今回の受け入れ確認
+
+開始時のHEADは97277de、作業ツリーclean、worktreeは1つ。元branch codex/admin-operations-pagesと同commitをcodex/preserve-production-20261004で保持しました。originはローカルrepoで維持し、GitHubをgithub remoteとして追加。GitHub mainは5ed8eb6で、97277deはまだ取得不可でした。未公開4 commitの66変更blobとfixture/文書を確認し、credential候補1件は合成redaction値でした。実価格fixture、Secret、privateログの追加を確認しませんでした。
+
+Cloudflare Builds triggerなし、Pagesなし、GitHub hooks/deployments各0、CIは検証のみ。ただしNetlify Appの対象repo範囲を表示するには再認証が必要で、所有者がpush保留を指定しました。両branchと今回の資料修正はローカルのみ、PR未作成。自動公開なしの確認と保留解除後に再検査して公開します。reset/clean/force-pushは行いません。
+
+[manifest](releases/20261004-admin.json)、[evidence](releases/20261004-admin-evidence.json)、[成果物manifest](releases/20261004-admin-artifact-manifest.json)は配信時のものを変更せず複写。台帳artifact digestはmanifestの582bc8c7…、server単体は16185dc3…で別です。recordのevidence_refは当時workspaceの参照で、同名のevidenceを同ディレクトリへ保存しました。配信時のserver byte一致・client content-hash照合と、今回の稼働version/tree確認を区別し、今の再ビルドが同じbyteになるとは主張しません。Node24/pnpm11.19.0/lockfile/compatibility2026-09-29が条件です。
+
+今回のAdminは資料/配信metadataだけの差分で、画面code・binding・Access変更なし。通知判定・未適用0006・dry-run・復旧検証はAPI repoの別commitで扱います。Adminの追加deployは不要です。元配信の合成browser検証と本番8ページGET/150件ページ送り/モバイル確認は配信証跡に保持しています。新しい7日間の自然収集実績を検証済みとは扱いません。
+
+2026-10-04のローカル再検証は `pnpm check`、単体8 file/93件、Vite build/client境界、Wrangler `deploy:dry-run`、既存browser14件が成功しました。browserは `PLAYWRIGHT_CHANNEL=msedge` でlocalhost:5174の合成データだけを使用しました。標準Chromiumは未導入のため初回は起動できず、既存Edgeによる実行で解消しています。今回の本番画面の再配信・新しい実通知・live収集はありません。

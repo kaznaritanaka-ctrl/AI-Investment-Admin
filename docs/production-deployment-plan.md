@@ -1,3 +1,5 @@
+> 2026-09-30配信の歴史的記録です。現本番97277deは[現在の反映・保全記録](operations-pages.md)を参照してください。旧version/未登録を現在の設定へ戻す根拠にしません。
+
 # Phase 1 Admin 本番接続・deploy計画
 
 2026-09-30 21:49 JST更新。**所有者承認後、21:38 JSTに新コックピットへ100%切替済み。21:48 JSTにruntime tokenの対象範囲を別途承認どおり修正し、4つのread-only権限でCloudflare実データ取得を確認。** 対象は既存の`ai-investment-admin`。Phase 1の作業ブランチは`codex/operations-cockpit`、ベースは`5ed8eb6`。作業treeの未commit差分を含むため、HEADだけでは今回の成果物を指さない。配信versionと操作履歴は§6、live結果は§9を参照。
