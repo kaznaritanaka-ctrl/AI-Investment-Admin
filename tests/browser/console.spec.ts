@@ -72,6 +72,87 @@ test("bounded summaries link to all sources and all attention items", async ({
     page.getByRole("link", { name: "全ソースを見る (9)" }),
   ).toBeVisible();
 });
+for (const width of [1440, 390]) {
+  test(`Source inventory retains all six columns and Overview row density at ${width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 1100 });
+    await page.goto("/");
+    const overviewRow = page.locator(".source-table tbody tr").first();
+    await expect(overviewRow).toBeVisible();
+    const overviewHeight = await overviewRow.evaluate(
+      (row) => row.getBoundingClientRect().height,
+    );
+    const overviewLimit = await page
+      .getByRole("region", { name: "ソース状況一覧" })
+      .evaluate((region) => getComputedStyle(region).maxHeight);
+    const sources = operational("sources");
+    sources.sources = Array.from({ length: 15 }, (_, i) =>
+      sourceDTO(i === 0 ? "ecb" : `synthetic-source-${i}`),
+    );
+    await page.route("**/api/sources", (route) =>
+      route.fulfill({ json: sources }),
+    );
+    await page
+      .getByRole("navigation", { name: "メインナビゲーション" })
+      .getByRole("link", { name: "Sources", exact: true })
+      .click();
+    const inventory = page.getByRole("table").filter({
+      has: page.getByRole("columnheader", { name: "設定状態", exact: true }),
+    });
+    await expect(inventory.locator("tbody tr")).toHaveCount(15);
+    const layout = await inventory.evaluate((table) => ({
+      widths: Array.from(table.querySelectorAll("thead th")).map(
+        (cell) => cell.getBoundingClientRect().width,
+      ),
+      rowHeight: table.querySelector("tbody tr")!.getBoundingClientRect()
+        .height,
+      pageWidth: document.documentElement.scrollWidth,
+      viewportWidth: innerWidth,
+    }));
+    expect(layout.widths).toHaveLength(6);
+    expect(Math.min(...layout.widths)).toBeGreaterThan(80);
+    expect(layout.rowHeight).toBeLessThanOrEqual(overviewHeight + 24);
+    expect(layout.pageWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
+    const region = page.getByRole("region", { name: "全ソース一覧" });
+    const viewport = await region.evaluate((element) => ({
+      limit: getComputedStyle(element).maxHeight,
+      height: element.clientHeight,
+      contentHeight: element.scrollHeight,
+    }));
+    expect(viewport.limit).toBe(overviewLimit);
+    expect(viewport.height).toBeLessThanOrEqual(480);
+    expect(viewport.contentHeight).toBeGreaterThan(viewport.height);
+    await region.focus();
+    await expect(region).toBeFocused();
+    await region.press("End");
+    const lastSettings = inventory
+      .getByRole("link", { name: "Settings", exact: true })
+      .last();
+    await lastSettings.focus();
+    const scrolled = await region.evaluate((element) => ({
+      scrollTop: element.scrollTop,
+      top: element.getBoundingClientRect().top,
+      headerTop: element.querySelector("th")!.getBoundingClientRect().top,
+    }));
+    expect(scrolled.scrollTop).toBeGreaterThan(0);
+    expect(Math.abs(scrolled.headerTop - scrolled.top)).toBeLessThan(2);
+    await lastSettings.press("Enter");
+    await expect(page).toHaveURL(/#settings\?source=synthetic-source-14/);
+    await page.goBack();
+    const settings = inventory
+      .getByRole("link", { name: "Settings", exact: true })
+      .first();
+    await settings.focus();
+    await expect(settings).toBeFocused();
+    await page.screenshot({
+      path: `work/screenshots/synthetic-source-inventory-${width}.png`,
+      fullPage: false,
+    });
+    await settings.press("Enter");
+    await expect(page).toHaveURL(/#settings\?source=ecb/);
+  });
+}
 test("all navigation destinations work, deep links and native back preserve filters", async ({
   page,
 }) => {

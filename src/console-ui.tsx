@@ -338,8 +338,13 @@ export function SourceTable({
   compact?: boolean;
 }) {
   return rows.length ? (
-    <div className="table-wrap">
-      <table className="source-table">
+    <div
+      className="table-wrap source-table-wrap"
+      role="region"
+      aria-label={compact ? "ソース状況一覧" : "全ソース一覧"}
+      tabIndex={0}
+    >
+      <table className={compact ? "source-table" : "source-inventory-table"}>
         <thead>
           <tr>
             <th>Source</th>
