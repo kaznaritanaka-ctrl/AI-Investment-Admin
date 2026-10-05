@@ -1,5 +1,5 @@
 // Synthetic operational DTOs, never bundled into the application.
-import { AdminReport } from "../src/admin-contract.ts";
+import { AdminReport, RunRecovery } from "../src/admin-contract.ts";
 import type {
   Report,
   RunDTO,
@@ -10,6 +10,30 @@ import type {
 import { STAMP } from "./fixtures.ts";
 export const SLOT = "2026-09-29T18:17:00.000Z";
 export const READ_AT = "2026-09-29T18:35:00.000Z";
+export function recoveryFixture() {
+  return RunRecovery.parse({
+    state: "recorded",
+    detected_at: SLOT,
+    classification: "schema_drift",
+    stage: "projection",
+    schema_drift: true,
+    diagnostic_codes: ["wrapper_changed"],
+    evidence_state: "preserved",
+    evidence_hash: "b".repeat(64),
+    evidence_expires_at: "2026-10-10T00:00:00.000Z",
+    recovery_result: "not_completed",
+    agent_status: "not_reported",
+    repair_patch: "not_reported",
+    regression_result: "not_reported",
+    reparse_result: "not_reported",
+    missing_observation: null,
+    missing_observation_count: null,
+    missing_observation_scope: "current_run_only",
+    remaining_human_action: "review_repair_candidate",
+    briefing:
+      "schema driftを検出。公開は未完了。保存Evidenceと修正候補の審査が必要",
+  });
+}
 export function run(source = "ecb"): RunDTO {
   return {
     run_id: source + "-run",
