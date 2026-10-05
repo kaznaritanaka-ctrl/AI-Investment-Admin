@@ -4,7 +4,7 @@ AI-Investment-APIsの収集・公開・基盤を確認する、Cloudflare Access
 
 2026-10-04に承認済みのOverview整理と詳細ページを配信済みです。稼働version 51e3f59d-1586-4507-8370-fdca8823e9f4、Git commit 97277dee49f888c69e54cef72e8566d1d432ef73、tree 892d6b742c536e35c9e7f4b48e9aae3e856b9bbd。14:54 JSTのCloudflare照合でも100%配信、private台帳5件と一致しています。[機能・保全記録](docs/operations-pages.md)と[配信manifest](docs/releases/20261004-admin.json)を参照してください。配信時の成果物一致と今回のsource tree確認は、別環境の再ビルド一致と区別します。
 
-本番commitはローカル codex/preserve-production-20261004 に保存し、資料修正は codex/operations-acceptance-20261004 です。従来originはローカルrepo、GitHubはgithub remote。Netlifyの自動公開対象を確認できなかったため、所有者指定でpush・PRを保留しています。古いGitHub mainで本番を上書きしません。
+本番commitはローカル codex/preserve-production-20261004 に保存し、資料修正は codex/operations-acceptance-20261004 です。従来originはローカルrepo、GitHubはgithub remote。2026-10-05の所有者によるNetlify確認でpush/PR保留を解除し、本番97277deeを含む最新作業branchをGitHubに公開して[Draft PR #3](https://github.com/kaznaritanaka-ctrl/AI-Investment-Admin/pull/3)を作成しました。main mergeと本番変更は別承認です。古いGitHub mainで本番を上書きしません。
 
 ## 画面と取得
 
@@ -59,7 +59,7 @@ pnpm.cmd deploy:dry-run
 - 必須：`CLOUDFLARE_READ_TOKEN`（Worker Secret）、`CF_ACCOUNT_ID`（対象accountの非secret変数）。
 - 任意：`WORKERS_PLAN`、`WORKERS_PLAN_VERIFIED_AT`、`WORKERS_PLAN_EVIDENCE`（確認済みplanのmanual evidence、API検証と区別）。
 - 使用中の4権限：Workers **Metadata Read-Only** / Account Analytics Read / D1 Read / Workers R2 Storage Read。対象accountの「アカウント全体」に限定。Cron・Custom Domainを含め実取得でき、**Workers Scripts Readは追加していません**。
-- 取得済み`origin/main`の`routes=[]`と本番Custom Domainのdriftに対し、作業treeの`wrangler.jsonc`は既存`admin.ai-investment-research.net`（`custom_domain: true`）、対象account、非secretの`CF_ACCOUNT_ID`を宣言しています。既存Domain/Access自体は変更していません。本番ソースはローカルcommit済みで、今回のGitHub push/PRは保留です。**今後のtoken・Secret・設定変更・deployにも、対象操作の所有者承認が必要です。**
+- 取得済み`origin/main`の`routes=[]`と本番Custom Domainのdriftに対し、作業treeの`wrangler.jsonc`は既存`admin.ai-investment-research.net`（`custom_domain: true`）、対象account、非secretの`CF_ACCOUNT_ID`を宣言しています。既存Domain/Access自体は変更していません。本番ソースはGitHubの作業branchで取得でき、Draft PR #3でレビュー可能です。**今後のtoken・Secret・設定変更・deployにも、対象操作の所有者承認が必要です。**
 
 現在のversionは[反映・保全記録](docs/operations-pages.md)、過去の配信手順は[歴史的配信計画](docs/production-deployment-plan.md)を参照してください。`pnpm.cmd build`の後に`pnpm.cmd deploy:dry-run`を実行します。dry-runはローカル検証で、token権限・Access実経路・本番CPUの検証ではありません。
 
