@@ -339,7 +339,7 @@ export function SourceTable({
 }) {
   return rows.length ? (
     <div className="table-wrap">
-      <table className="source-table">
+      <table className={compact ? "source-table" : "source-inventory-table"}>
         <thead>
           <tr>
             <th>Source</th>

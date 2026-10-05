@@ -52,3 +52,11 @@ Gitに保存したevidence/成果物manifestのbyte digestも原本と一致し�
 作業branch `codex/operations-acceptance-20261004` / `ff46be8ecf20f9df8df52374e3991c5a217e21fe` のGitHub pushとremote head照合が完了し、本番 `97277dee49f888c69e54cef72e8566d1d432ef73` が祖先としてGitHubで取得できることも確認した。[CI 37246640534](https://github.com/kaznaritanaka-ctrl/AI-Investment-Admin/actions/runs/37246640534)は93 unit tests、14 browser tests、型、build/client境界、lockfile/差分に成功。[Draft PR #3](https://github.com/kaznaritanaka-ctrl/AI-Investment-Admin/pull/3)を作成した。mainは5ed8eb6のままで、mergeや再deployは行っていない。この追記は文書のみで、上のCIは明記したcommitに対する結果である。
 
 Overviewと7専用ページ、ECB修正、ADMIN_READ、配信台帳は配信済み。画面からの再実行・設定変更・権利変更は次段階の未実装機能。未配信の運用判定/0006とschema drift候補、外部runner/自動briefing、GPU/電力、長期保存、運用受け入れの残件は[APIの受け入れ記録](https://github.com/kaznaritanaka-ctrl/AI-Investment-APIs/blob/codex/schema-drift-recovery-20261005/docs/operations-acceptance.md)へ集約した。Adminに新しいruntime変更やdeployは必要ない。
+
+## 2026-10-05 Source inventoryの行高修正
+
+所有者の本番反映依頼と、Source inventoryをOverviewと同じ自然な行高に揃える依頼に対応する。上の「Adminの追加deployは不要」は文書のみを保全した時点の記録で、この表示修正にはAdminの配信が必要になる。
+
+6列の一覧に旧4列テーブルの列幅（合計100%）が適用され、残り2列がほぼ0pxになっていた。本番では1行が約600px、一覧パネルが約9,217pxに伸びていた。6列専用のCSSへ分離し、6列全体へ幅を割り当てる。Overviewの4列、全ソース・全列・詳細リンクは保持し、狭い画面では既存のテーブル内横スクロールを使う。
+
+1440pxと390pxの合成ブラウザ回帰テストで、15ソース・6列の保持、各列の最小幅、Overviewとの差が24px以内の行高、ページ外への横溢れ防止、キーボードでSettingsへ進む条件引継ぎを検証する。修正前は両ケースで列幅0px相当を検出して失敗し、修正後は2件とも成功した。これは本番での配信確認とは区別する。固定commitでの全体検証と配信結果は後続の受け入れ記録に追記する。
