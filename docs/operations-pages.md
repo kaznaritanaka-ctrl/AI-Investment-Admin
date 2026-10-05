@@ -60,3 +60,11 @@ Overviewと7専用ページ、ECB修正、ADMIN_READ、配信台帳は配信済�
 6列の一覧に旧4列テーブルの列幅（合計100%）が適用され、残り2列がほぼ0pxになっていた。本番では1行が約600px、一覧パネルが約9,217pxに伸びていた。6列専用のCSSへ分離し、6列全体へ幅を割り当てる。Overviewの4列、全ソース・全列・詳細リンクは保持し、狭い画面では既存のテーブル内横スクロールを使う。両一覧に共通の480pxの高さ上限と固定見出しを設け、全件を領域内でスクロールする。領域自体へキーボードでフォーカスでき、末尾行のリンクも利用できる。
 
 1440pxと390pxの合成ブラウザ回帰テストで、15ソース・6列の保持、各列の最小幅、Overviewとの差が24px以内の行高、ページ外への横溢れ防止、キーボードでSettingsへ進む条件引継ぎを検証する。修正前は両ケースで列幅0px相当を検出して失敗し、修正後は2件とも成功した。これは本番での配信確認とは区別する。固定commitでの全体検証と配信結果は後続の受け入れ記録に追記する。
+
+最終`d08ad3a14d04fae1963620cdacc4ae5c35c21af7`で21:20:28–21:21:13 JSTに型・93 unit・16 browser・build/client境界・Worker dry-runがすべて成功した。Node24.19.0、既存lockfile、ローカルEdgeの合成ブラウザで、実行中の編集なし。[同HEADのCI 37309297109](https://github.com/kaznaritanaka-ctrl/AI-Investment-Admin/actions/runs/37309297109)はUbuntu/Chromiumでも成功。[Draft PR #4](https://github.com/kaznaritanaka-ctrl/AI-Investment-Admin/pull/4)を#3の上に作成し、mainはmergeしていない。
+
+所有者の本番反映依頼に基づき、21:33:03 JSTにversion `f377d281-a964-4902-bb08-0566571dccdb`へ100%切替。server moduleはSHA-256 `84203d42a3007e47a6499edcfc09aff3ac1a4aaeb6f22e340bb326e4a45e9549`とbyte一致し、認証済み画面でclientのcontent hash付きURLも一致した（本番client byte全文はexportしていない）。Access・Custom Domain・CSP・ADMIN_READ・既存Secret・workers.dev/preview無効を維持した。
+
+本番Source inventoryは全15ソース/6列のまま、パネル約9,217px→約556px、各行約68px、表の表示領域480px。Overviewの表は458px、両者の上限は480px。Sources/Overview/Settings/Releasesの読み取りが成功し、ECB/Modelsの収集・公開2/2、通知OFF、Cron一致を確認した。台帳は今回2件を追加して全7件、稼働versionとGit SHAを表示する。既存観測・旧通知・権利は不変。
+
+今回の[配信record](releases/20261005-admin.json)、同名evidenceとartifact manifestを保全した。Collector `41ed514`の配信、private 0006、自然実行は新versionでは未確認という境界、PoCやschema recovery等の未有効化事項は[API受け入れ記録](https://github.com/kaznaritanaka-ctrl/AI-Investment-APIs/blob/codex/price-of-compute-private-readiness-20261005/docs/operations-acceptance.md)へ集約した。この追記とmetadataは文書のみで、配信SHAはd08ad3aのままである。

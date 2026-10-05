@@ -1,0 +1,47 @@
+[
+  {
+    "path": "admin/ai_investment_admin/.vite/manifest.json",
+    "bytes": 157,
+    "sha256": "adc6cbede6ffdd0f4ff071c941fea1448fb726fc5b86039b8a41b4b97a5a22a1"
+  },
+  {
+    "path": "admin/ai_investment_admin/index.js",
+    "bytes": 221358,
+    "sha256": "84203d42a3007e47a6499edcfc09aff3ac1a4aaeb6f22e340bb326e4a45e9549"
+  },
+  {
+    "path": "admin/ai_investment_admin/wrangler.json",
+    "bytes": 1886,
+    "sha256": "746025e49d2836b942fd69f1235d9a0c4c3de102dc18519135d404ac610b1775"
+  },
+  {
+    "path": "admin/client/.assetsignore",
+    "bytes": 24,
+    "sha256": "4f83140d5f4293ab55bd1207327e995c83258f1e7d3145b1b5d7a3d17fdfe0a7"
+  },
+  {
+    "path": "admin/client/assets/index-BQnJIpf4.css",
+    "bytes": 22845,
+    "sha256": "a558687b7c15d6c22ed37b11e1d7dcf8123febecf4a9ff9c81d2c72d7a66b5ab"
+  },
+  {
+    "path": "admin/client/assets/index-CbSlbPWO.js",
+    "bytes": 375684,
+    "sha256": "9858200b6ae5ea0cd1b4da26467554f7264fb6ec087cd56b8a983ba1547d0184"
+  },
+  {
+    "path": "admin/client/favicon.svg",
+    "bytes": 195,
+    "sha256": "b49b31965a4f62f3b36934194ed75b1ff6a373d1040044112b7e98ee6e31895e"
+  },
+  {
+    "path": "admin/client/index.html",
+    "bytes": 532,
+    "sha256": "26f20a89c18d82952839628a413ae0d681564d976b61bf351f0babc92f9a132d"
+  },
+  {
+    "path": "admin/client/_headers",
+    "bytes": 282,
+    "sha256": "e843f50619973df39888f13d5059453ba6028bbb836f8af1aab0998e6184d8f7"
+  }
+]
