@@ -405,3 +405,11 @@ test("Worker preserves GET-only and rejects arbitrary query before invoking any 
   ).toBe(400);
   expect((await request.get("/api/not-a-resource")).status()).toBe(404);
 });
+
+test("Infrastructure labels Analytics storage and its sample time without existence claims", async ({ page }) => {
+  await page.goto("/#infrastructure");
+  await expect(page.getByRole("heading", { name: "D1 databases" })).toBeVisible();
+  await expect(page.getByText("Analytics · 最新容量サンプル")).toBeVisible();
+  await expect(page.getByText("容量サンプル：", { exact: false })).toHaveCount(2);
+  await expect(page.getByText("D1・R2容量はAnalyticsの最新サンプルです。", { exact: false })).toBeVisible();
+});

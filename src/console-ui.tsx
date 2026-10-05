@@ -186,12 +186,13 @@ export function infrastructureAttention(
         );
     }
     for (const d of infra.d1) {
-      if (d.metadata.state === "missing")
-        add(d.name + "-missing", "error", d.name + "：構成を確認できません");
+      if (d.storage.state !== "ok")
+        add(d.name + "-storage", "unknown", d.name + "：容量サンプルに未取得・古い結果があります");
       if (
         infra.plan.value === "paid" &&
-        d.metadata.storage_bytes !== null &&
-        d.metadata.storage_bytes >= 8_000_000_000
+        ["ok", "stale"].includes(d.storage.state) &&
+        d.storage.storage_bytes !== null &&
+        d.storage.storage_bytes >= 8_000_000_000
       )
         add(
           d.name + "-capacity",

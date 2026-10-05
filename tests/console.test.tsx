@@ -79,8 +79,8 @@ it("does not treat unknown checks or decimal/null values as success or zero", ()
 it("keeps private and public DB capacity separate", () => {
   const infra = infrastructureFixture();
   infra.plan.value = "paid";
-  infra.d1[0].metadata.storage_bytes = 8_500_000_000;
-  infra.d1[1].metadata.storage_bytes = 1_000_000_000;
+  infra.d1[0].storage.storage_bytes = 8_500_000_000;
+  infra.d1[1].storage.storage_bytes = 1_000_000_000;
   const alerts = infrastructureAttention(infra, NOW).filter((x) =>
     x.id.endsWith("-capacity"),
   );

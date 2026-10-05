@@ -46,6 +46,11 @@ const d1Metrics = z.object({
     .max(1),
   latest: z.array(timestamp).max(1),
 });
+const d1Storage = z.object({
+  total: z.array(timestamp.extend({
+    max: z.object({ databaseSizeBytes: amount }).nullable(),
+  })).max(1),
+});
 const r2Storage = z.object({
   total: z
     .array(
@@ -79,6 +84,11 @@ export const D1_QUERY = `query AdminD1Metrics($account: string!, $name: string!,
   viewer { accounts(filter:{accountTag:$account}) {
     total:d1AnalyticsAdaptiveGroups(limit:1,filter:{databaseId:$name,datetime_geq:$start,datetime_leq:$end}) {sum {rowsRead rowsWritten}}
     latest:d1AnalyticsAdaptiveGroups(limit:1,filter:{databaseId:$name,datetime_geq:$start,datetime_leq:$end},orderBy:[datetime_DESC]) {dimensions {datetime}}
+  }}
+}`;
+export const D1_STORAGE_QUERY = `query AdminD1Storage($account: string!, $name: string!, $start: Time!, $end: Time!) {
+  viewer { accounts(filter:{accountTag:$account}) {
+    total:d1StorageAdaptiveGroups(limit:1,filter:{databaseId:$name,datetime_geq:$start,datetime_leq:$end},orderBy:[datetime_DESC]) {max {databaseSizeBytes} dimensions {datetime}}
   }}
 }`;
 export const R2_STORAGE_QUERY = `query AdminR2Storage($account: string!, $name: string!, $start: Time!, $end: Time!) {
@@ -115,7 +125,7 @@ export function emptyInfrastructure(
 ): Infrastructure {
   const end = new Date(Math.floor(now / 60000) * 60000).toISOString();
   return {
-    schema_version: "admin-infrastructure-v1",
+    schema_version: "admin-infrastructure-v2",
     availability: "unavailable",
     configuration,
     fetched_at: new Date(now).toISOString(),
@@ -143,7 +153,7 @@ export function emptyInfrastructure(
     })),
     d1: DATABASES.map((d) => ({
       name: d.name,
-      metadata: { ...unavailable(), storage_bytes: null },
+      storage: { ...unavailable(), storage_bytes: null, latest_at: null, source: "analytics" },
       metrics: {
         ...unavailable(),
         latest_at: null,
@@ -153,9 +163,9 @@ export function emptyInfrastructure(
     })),
     r2: {
       name: BUCKET,
-      metadata: unavailable(),
       storage: {
         ...unavailable(),
+        source: "analytics",
         latest_at: null,
         payload_bytes: null,
         metadata_bytes: null,
@@ -187,7 +197,7 @@ export async function collectInfrastructure(
   }
   out.configuration = "configured";
   const controller = new AbortController();
-  // One deadline includes queueing + headers + body reads, not 23 serial timeouts.
+  // One deadline includes queueing, headers and body reads for every fixed task.
   const timer = setTimeout(
     () => controller.abort(),
     options.timeoutMs ?? 10000,
@@ -287,8 +297,8 @@ export async function collectInfrastructure(
       };
     }
   }
-  const graph = <T>(query: string, name: string, schema: z.ZodType<T>) =>
-    request("/graphql", schema, {
+  const graph = async <T>(query: string, name: string, schema: z.ZodType<T>) => {
+    const result = await request("/graphql", schema, {
       query,
       variables: {
         account: ACCOUNT_ID,
@@ -297,6 +307,10 @@ export async function collectInfrastructure(
         end: out.window.end,
       },
     });
+    // An unavailable analytics endpoint is not evidence that a resource was deleted.
+    if (result.check.state === "missing") result.check = unavailable("http_error", 404);
+    return result;
+  };
   function sample(
     check: Check,
     latest: string | null,
@@ -305,10 +319,11 @@ export async function collectInfrastructure(
   ): Check {
     if (check.state !== "ok") return check;
     if (!latest) return unavailable("no_samples", 200);
+    if (Date.parse(latest) > Date.parse(out.window.end)) return unavailable("malformed", 200);
+    if (values.some((v) => v === null)) return unavailable("null_metrics", 200);
     // A storage sample may lag. An idle Worker is not itself a stale metrics response.
     if (storage && now() - Date.parse(latest) > 6 * 3600000)
       return { ...success(), state: "stale", reason: "old_sample" };
-    if (values.some((v) => v === null)) return unavailable("null_metrics", 200);
     return check;
   }
   const tasks: (() => Promise<void>)[] = [];
@@ -434,15 +449,14 @@ export async function collectInfrastructure(
     const db = out.d1[index];
     tasks.push(
       async () => {
-        const r = await request(
-          `${base}/d1/database/${target.id}?fields=uuid,name,file_size`,
-          z.object({
-            uuid: z.literal(target.id),
-            name: z.literal(target.name),
-            file_size: amount,
-          }),
-        );
-        db.metadata = { ...r.check, storage_bytes: r.data?.file_size ?? null };
+        const r = await graph(D1_STORAGE_QUERY, target.id, d1Storage);
+        const s = r.data?.total[0], latest = s?.dimensions.datetime ?? null;
+        const bytes = s?.max?.databaseSizeBytes ?? null;
+        const check = sample(r.check, latest, [bytes], true);
+        db.storage = {
+          ...check,
+          storage_bytes: check.state === "unavailable" ? null : bytes, latest_at: latest, source: "analytics",
+        };
       },
       async () => {
         const r = await graph(D1_QUERY, target.id, d1Metrics),
@@ -461,25 +475,20 @@ export async function collectInfrastructure(
   }
   tasks.push(
     async () => {
-      const r = await request(
-        `${base}/r2/buckets/${BUCKET}`,
-        z.object({ name: z.literal(BUCKET) }),
-      );
-      out.r2.metadata = r.check;
-    },
-    async () => {
       const r = await graph(R2_STORAGE_QUERY, BUCKET, r2Storage),
         s = r.data?.total[0];
       const latest = s?.dimensions.datetime ?? null,
         payload = s?.max?.payloadSize ?? null,
         metadata = s?.max?.metadataSize ?? null,
         objects = s?.max?.objectCount ?? null;
+      const check = sample(r.check, latest, [payload, metadata, objects], true);
       out.r2.storage = {
-        ...sample(r.check, latest, [payload, metadata, objects], true),
+        ...check,
+        source: "analytics",
         latest_at: latest,
-        payload_bytes: payload,
-        metadata_bytes: metadata,
-        objects,
+        payload_bytes: check.state === "unavailable" ? null : payload,
+        metadata_bytes: check.state === "unavailable" ? null : metadata,
+        objects: check.state === "unavailable" ? null : objects,
       };
     },
     async () => {
@@ -527,8 +536,7 @@ export async function collectInfrastructure(
       w.deployment,
       w.metrics,
     ]),
-    ...out.d1.flatMap((d) => [d.metadata, d.metrics]),
-    out.r2.metadata,
+    ...out.d1.flatMap((d) => [d.storage, d.metrics]),
     out.r2.storage,
     out.r2.operations,
   ];

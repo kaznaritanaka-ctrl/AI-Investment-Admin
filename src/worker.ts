@@ -62,8 +62,7 @@ export async function handle(
         w.exposure,
         w.deployment,
       ]),
-      ...report.d1.flatMap((d) => [d.metadata, d.metrics]),
-      report.r2.metadata,
+      ...report.d1.flatMap((d) => [d.storage, d.metrics]),
       report.r2.storage,
       report.r2.operations,
     ];
