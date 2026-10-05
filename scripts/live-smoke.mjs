@@ -24,7 +24,7 @@ for (const [key, result] of Object.entries(report.endpoints)) {
             datasets: result.data.datasets,
           }
         : {}),
-      ...(key === "latest" && result.data
+      ...((key === "latest" || key === "fx") && result.data
         ? {
             observations: result.data.data.map((o) => ({
               source_id: o.source.source_id,

@@ -139,6 +139,9 @@ export const LatestSchema = z
     data: z.array(ObservationSchema).max(100),
   })
   .passthrough();
+export const FXLatestSchema = LatestSchema.extend({
+  data: z.array(FXSchema).max(100),
+});
 const rights = z.record(
   z.string(),
   z.enum(["allowed", "denied", "review_required", "expired"]),
@@ -174,6 +177,7 @@ export const ErrorSchema = z.object({ error: z.object({ code: z.string() }) });
 export const ENDPOINTS = {
   health: { path: "/health", schema: HealthSchema },
   latest: { path: "/v1/latest", schema: LatestSchema },
+  fx: { path: "/v1/latest?dataset=fx", schema: FXLatestSchema },
   sources: { path: "/v1/sources", schema: SourcesSchema },
   licenses: { path: "/v1/methodology/licenses", schema: LicensesSchema },
 } as const;
@@ -210,6 +214,7 @@ export const StatusSchema = z.object({
   endpoints: z.object({
     health: endpoint(HealthSchema),
     latest: endpoint(LatestSchema),
+    fx: endpoint(FXLatestSchema),
     sources: endpoint(SourcesSchema),
     licenses: endpoint(LicensesSchema),
   }),
