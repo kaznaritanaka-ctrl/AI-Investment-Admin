@@ -1,4 +1,4 @@
-<!-- Current state 2026-10-04: production 97277de, ADMIN_READ and ledger five records active. See docs/operations-pages.md. Older release notes are historical. Owner placed GitHub push/PR on hold pending Netlify automatic-publication scope verification. This acceptance change is documentation/provenance only; no new Admin deploy is needed. -->
+<!-- Current state 2026-10-05: production 97277de, ADMIN_READ and ledger five records active per the 2026-10-04 verification. See docs/operations-pages.md. Older release notes are historical. Owner confirmed Netlify is not a blocker and released the GitHub push/PR hold for this work; the latest branch is published as draft PR #3. This is owner confirmation, not an independent Netlify settings audit. Main merge and production changes still require separate approval. This acceptance change is documentation/provenance only; no new Admin deploy is needed. -->
 
 # Scope and boundaries
 

@@ -44,3 +44,11 @@ Cloudflare Builds triggerなし、Pagesなし、GitHub hooks/deployments各0、C
 2026-10-04のローカル再検証は `pnpm check`、単体8 file/93件、Vite build/client境界、Wrangler `deploy:dry-run`、既存browser14件が成功しました。browserは `PLAYWRIGHT_CHANNEL=msedge` でlocalhost:5174の合成データだけを使用しました。標準Chromiumは未導入のため初回は起動できず、既存Edgeによる実行で解消しています。今回の本番画面の再配信・新しい実通知・live収集はありません。
 
 Gitに保存したevidence/成果物manifestのbyte digestも原本と一致しました。`docs/releases/*.json` は `.gitattributes` で改行変換の対象外とし、別環境のcheckoutでも既存台帳のSHA-256を保持します。
+
+## 2026-10-05 GitHub保全とレビュー再開
+
+上のGitHub未公開・Netlify保留は10月4日時点の記録。所有者が「Netlifyは問題ないのでそちらも進めて」と確認したため、対象repoのpush/PR保留を解除した。Netlifyの設定を独立に再検査・変更したという意味ではない。
+
+作業branch `codex/operations-acceptance-20261004` / `ff46be8ecf20f9df8df52374e3991c5a217e21fe` のGitHub pushとremote head照合が完了し、本番 `97277dee49f888c69e54cef72e8566d1d432ef73` が祖先としてGitHubで取得できることも確認した。[CI 37246640534](https://github.com/kaznaritanaka-ctrl/AI-Investment-Admin/actions/runs/37246640534)は93 unit tests、14 browser tests、型、build/client境界、lockfile/差分に成功。[Draft PR #3](https://github.com/kaznaritanaka-ctrl/AI-Investment-Admin/pull/3)を作成した。mainは5ed8eb6のままで、mergeや再deployは行っていない。この追記は文書のみで、上のCIは明記したcommitに対する結果である。
+
+Overviewと7専用ページ、ECB修正、ADMIN_READ、配信台帳は配信済み。画面からの再実行・設定変更・権利変更は次段階の未実装機能。未配信の運用判定/0006とschema drift候補、外部runner/自動briefing、GPU/電力、長期保存、運用受け入れの残件は[APIの受け入れ記録](https://github.com/kaznaritanaka-ctrl/AI-Investment-APIs/blob/codex/schema-drift-recovery-20261005/docs/operations-acceptance.md)へ集約した。Adminに新しいruntime変更やdeployは必要ない。
