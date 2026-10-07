@@ -72,7 +72,9 @@ export function RunRecovery({ run }: { run: RunDTO }) {
                 {r.recovery_result === "completed_after_failure"
                   ? "障害後の完了を記録済み"
                   : r.recovery_result === "not_needed"
-                    ? "収集・公開完了"
+                    ? run.publication.state === "not_applicable"
+                      ? "非公開収集完了（公開対象外）"
+                      : "収集・公開完了"
                     : r.recovery_result === "in_progress"
                       ? "処理中"
                       : "未確認・未完了"}

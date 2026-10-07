@@ -76,6 +76,22 @@ it("does not treat unknown checks or decimal/null values as success or zero", ()
   expect(detail).toContain("未提供");
   expect(detail).toContain("synthetic tier A");
 });
+it("uses the verified publication scope independently of the collection count", () => {
+  const r = operational("overview");
+  Object.assign(r.overview!, {
+    expected: 3,
+    completed: 3,
+    published: 2,
+    publication_expected: 2,
+  });
+  const render = () =>
+    renderToStaticMarkup(<OverviewPage report={r} infra={null} now={NOW} />);
+  expect(render()).toContain('公開完了</h2><div class="stat-value">2 / 2');
+  r.overview!.publication_expected = 0;
+  expect(render()).toContain('公開完了</h2><div class="stat-value">対象外');
+  r.overview!.publication_expected = null;
+  expect(render()).toContain('公開完了</h2><div class="stat-value">未確認');
+});
 it("keeps private and public DB capacity separate", () => {
   const infra = infrastructureFixture();
   infra.plan.value = "paid";

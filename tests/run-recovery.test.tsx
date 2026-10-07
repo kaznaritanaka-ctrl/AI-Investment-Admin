@@ -46,3 +46,20 @@ it("accepts old Collector responses but refuses raw fields and unproven agent pr
     expect(AdminReport.safeParse(bad).success).toBe(false);
   }
 });
+it("reports a verified private capture without claiming public completion", () => {
+  const r = run("price_of_compute");
+  r.publication.state = "not_applicable";
+  r.capture_verified = true;
+  r.recovery = {
+    ...recoveryFixture(),
+    recovery_result: "not_needed",
+    remaining_human_action: "none",
+    briefing: "非公開の収集完了。公開は対象外",
+  };
+  const report = operational("runs");
+  report.runs = [r];
+  expect(AdminReport.safeParse(report).success).toBe(true);
+  const html = renderToStaticMarkup(<RunRecovery run={r} />);
+  expect(html).toContain("非公開収集完了（公開対象外）");
+  expect(html).not.toContain("収集・公開完了");
+});

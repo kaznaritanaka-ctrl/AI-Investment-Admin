@@ -68,3 +68,9 @@ Overviewと7専用ページ、ECB修正、ADMIN_READ、配信台帳は配信済�
 本番Source inventoryは全15ソース/6列のまま、パネル約9,217px→約556px、各行約68px、表の表示領域480px。Overviewの表は458px、両者の上限は480px。Sources/Overview/Settings/Releasesの読み取りが成功し、ECB/Modelsの収集・公開2/2、通知OFF、Cron一致を確認した。台帳は今回2件を追加して全7件、稼働versionとGit SHAを表示する。既存観測・旧通知・権利は不変。
 
 今回の[配信record](releases/20261005-admin.json)、同名evidenceとartifact manifestを保全した。Collector `41ed514`の配信、private 0006、自然実行は新versionでは未確認という境界、PoCやschema recovery等の未有効化事項は[API受け入れ記録](https://github.com/kaznaritanaka-ctrl/AI-Investment-APIs/blob/codex/price-of-compute-private-readiness-20261005/docs/operations-acceptance.md)へ集約した。この追記とmetadataは文書のみで、配信SHAはd08ad3aのままである。
+
+## 2026-10-08 夜間診断と公開対象の分離
+
+[PR #6](https://github.com/kaznaritanaka-ctrl/AI-Investment-Admin/pull/6)は14d95f4までのRuns障害診断・Overview導線・Analytics取得改善を統合し、非公開PoCを公開待ちと誤表示する結合上の漏れを修正する。Collectorが現在のpolicyとDB・snapshot・件数を照合して返す`not_applicable`を公開対象外として表示し、Overviewの公開対象数を収集対象数から分ける。対象数が未確認なら未確認を保ち、旧Collectorの応答も受け入れる。Dotsの結果保存が未連携なら、そのまま未報告と表示する。
+
+現在の本番Adminはd08ad3a。この候補の反映は別承認で、対応Collectorより先に行う。rollbackはCollector→Adminの順とし、旧Adminへ先に戻して新DTOを拒否させない。Access、GET専用、Source inventoryの高さ制限、既存Secretと設定を保持し、token作成・権限変更をcode deployに含めない。
