@@ -1,0 +1,29 @@
+{
+  "record_id": "20261005-admin-d08ad3a-verified",
+  "worker": "ai-investment-admin",
+  "version_id": "f377d281-a964-4902-bb08-0566571dccdb",
+  "git_sha": "d08ad3a14d04fae1963620cdacc4ae5c35c21af7",
+  "tree_sha": "f6759254dfec845fd0a71178fee9fd6968db3eab",
+  "artifact_sha256": "81e19887c22c7a203dea967140e56a70e9a4bf8ceb70efa08d2d0e7de19c7462",
+  "event": "verified",
+  "recorded_at": "2026-10-05T12:37:22.960Z",
+  "traffic_percent": 100,
+  "evidence_ref": "outputs/production-20261005/release-records/20261005-admin-evidence.json",
+  "evidence_sha256": "9ebb1ba84fd2ad688c6e85d6e4c7b282cc858b5f3c5f1683bfeb0199eca35108",
+  "checks": {
+    "deployment_readback": "passed",
+    "artifact_hash": "passed",
+    "settings_preserved": "passed",
+    "authenticated_read_smoke": "passed",
+    "observation_preservation": "passed",
+    "access_preserved": "passed"
+  },
+  "migration_names": [
+    "0001_initial.sql",
+    "0002_gpu.sql",
+    "0003_models_catalog.sql",
+    "0005_admin_release_ledger.sql",
+    "0006_notification_incidents.sql"
+  ],
+  "github_url": "https://github.com/kaznaritanaka-ctrl/AI-Investment-Admin/commit/d08ad3a14d04fae1963620cdacc4ae5c35c21af7"
+}

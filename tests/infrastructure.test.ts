@@ -60,11 +60,11 @@ it("固定read-only APIをserver Secretで取得し最小projectionだけ返す"
   expect(r.workers[0].deployment.versions).toEqual([
     { id: VERSION, percentage: 100 },
   ]);
-  expect(r.d1[0].metadata.storage_bytes).toBe(1048576);
+  expect(r.d1[0].storage.storage_bytes).toBe(1048576);
   expect(r.r2.storage.payload_bytes).toBe(262144);
   expect(r.workers[2].domains.hostnames).toEqual(["admin.fixture.test"]);
   expect(r.plan.value).toBe("unknown");
-  expect(fetcher).toHaveBeenCalledTimes(23);
+  expect(fetcher).toHaveBeenCalledTimes(22);
   for (const [url, init] of fetcher.mock.calls) {
     expect(String(url)).toMatch(
       /^https:\/\/api\.cloudflare\.com\/client\/v4\/(accounts\/[a-f0-9]{32}\/|graphql$)/,
@@ -83,7 +83,7 @@ it("固定read-only APIをserver Secretで取得し最小projectionだけ返す"
       expect(String(init.body)).not.toContain("mutation");
     } else expect(init?.method).toBe("GET");
     expect(String(url)).not.toMatch(
-      /\/query|\/raw|\/objects|\/secrets|\/content/,
+      /\/d1\/|\/r2\/|\/query|\/raw|\/objects|\/secrets|\/content/,
     );
   }
   for (const secret of [
@@ -141,9 +141,9 @@ it("最小権限でCronとDomainが403でもmetadata・version・metricsを利�
     expect(worker.exposure.workers_dev).toBe(false);
     expect(worker.metrics.requests).toBe(23);
   }
-  expect(r.d1[0].metadata.state).toBe("ok");
+  expect(r.d1[0].storage.state).toBe("ok");
   expect(r.r2.storage.state).toBe("ok");
-  expect(fetcher).toHaveBeenCalledTimes(23);
+  expect(fetcher).toHaveBeenCalledTimes(22);
   expect(JSON.stringify(r)).not.toMatch(
     /private-sentinel|synthetic-server-secret/,
   );
@@ -181,7 +181,7 @@ it.each(["html", "shape", "large", "graphql_errors"])(
     );
     expect(r.workers[0].metrics.state).toBe("unavailable");
     expect(r.workers[0].metrics.requests).toBeNull();
-    expect(r.d1[0].metadata.state).toBe("ok");
+    expect(r.d1[0].storage.state).toBe("ok");
     expect(JSON.stringify(r)).not.toContain("private-sentinel");
   },
 );
@@ -224,24 +224,15 @@ it.each([null, []])(
     expect(r.workers[0].metrics.state).toBe("unavailable");
   },
 );
-it("Worker/D1/R2が存在しない場合にmissingを表示し停止や空DBを推定しない", async () => {
-  const r = await collectInfrastructure(
-    INFRA_ENV,
-    cloudflareFixture((url) =>
-      url.pathname.endsWith("/script-settings") ||
-      url.pathname.includes("/d1/") ||
-      url.pathname.includes("/r2/")
-        ? json({}, 404)
-        : undefined,
-    ),
-    options,
-  );
+it("Workerの404だけをmissingとし、D1/R2の空seriesから削除や0容量を推定しない", async () => {
+  const r = await collectInfrastructure(INFRA_ENV, cloudflareFixture((url, init) => {
+    if (url.pathname.endsWith("/script-settings")) return json({}, 404);
+    if (/Admin(D1|R2)Storage/.test(String(init?.body)))
+      return json({ data: { viewer: { accounts: [{ total: [] }] } } });
+  }), options);
   expect(r.workers[0].metadata.state).toBe("missing");
-  expect(r.d1[0].metadata).toMatchObject({
-    state: "missing",
-    storage_bytes: null,
-  });
-  expect(r.r2.metadata.state).toBe("missing");
+  expect(r.d1[0].storage).toMatchObject({ state: "unavailable", reason: "no_samples", storage_bytes: null, latest_at: null, source: "analytics" });
+  expect(r.r2.storage).toMatchObject({ state: "unavailable", reason: "no_samples", payload_bytes: null });
   expect(r.workers[0].exposure.workers_dev).toBe(false);
 });
 it("古いR2 sampleと画面全体のstaleを区別、idle Workerを障害にしない", async () => {
@@ -387,4 +378,34 @@ it("Infrastructure HTTP projectionはCookie/tokenを反射しない", async () =
     /browser-secret|browser-cookie|synthetic-server-secret-sentinel|private-sentinel/,
   );
   expect(r.headers.get("access-control-allow-origin")).toBeNull();
+});
+
+it.each([
+  [null, "2026-09-29T18:18:00.000Z", "null_metrics"],
+  [10, "2026-10-01T00:00:00.000Z", "malformed"],
+])("D1 storage rejects unknown/future measurements (%s)", async (bytes, stamp, reason) => {
+  const r = await collectInfrastructure(INFRA_ENV, cloudflareFixture((_url, init) => {
+    if (String(init?.body).includes("AdminD1Storage"))
+      return json({ data: { viewer: { accounts: [{ total: [{ max: { databaseSizeBytes: bytes }, dimensions: { datetime: stamp } }] }] } } });
+  }), options);
+  expect(r.d1[0].storage).toMatchObject({ state: "unavailable", reason, storage_bytes: null });
+  expect(r.r2.storage.state).toBe("ok");
+});
+it("D1 storage preserves an old measured value with a stale label", async () => {
+  const stamp = new Date(NOW - 7 * 3600000).toISOString();
+  const r = await collectInfrastructure(INFRA_ENV, cloudflareFixture((_url, init) => {
+    if (String(init?.body).includes("AdminD1Storage"))
+      return json({ data: { viewer: { accounts: [{ total: [{ max: { databaseSizeBytes: 42 }, dimensions: { datetime: stamp } }] }] } } });
+  }), options);
+  expect(r.d1[0].storage).toMatchObject({ state: "stale", reason: "old_sample", storage_bytes: 42, latest_at: stamp, source: "analytics" });
+});
+it.each([403, 404])("Analytics denial %s cannot imply a deleted or empty database/bucket", async (status) => {
+  const r = await collectInfrastructure(INFRA_ENV, cloudflareFixture((_url, init) => {
+    if (/Admin(D1|R2)Storage/.test(String(init?.body))) return json({ message: "private-sentinel" }, status);
+  }), options);
+  expect(r.d1[0].storage).toMatchObject({ state: "unavailable", storage_bytes: null });
+  expect(r.r2.storage).toMatchObject({ state: "unavailable", payload_bytes: null });
+  expect(r.workers[0].metadata.state).toBe("ok");
+  expect(r.d1[0].metrics.state).toBe("ok");
+  expect(JSON.stringify(r)).not.toContain("private-sentinel");
 });

@@ -132,10 +132,8 @@ export function attentionItems(
         items.push(`${w.name}: workers.dev / preview URLの公開状態を要確認。`);
     }
     for (const db of infra.d1)
-      if (db.metadata.state === "missing")
-        items.push(`${db.name}: Cloudflare APIで見つかりません。`);
-    if (infra.r2.metadata.state === "missing")
-      items.push(`${infra.r2.name}: Cloudflare APIで見つかりません。`);
+      if (db.storage.state !== "ok")
+        items.push(`${db.name}: 容量サンプルを確認してください。`);
     if (infra.r2.storage.state === "stale")
       items.push("R2 storage: 6時間超前のサンプルです。");
   }

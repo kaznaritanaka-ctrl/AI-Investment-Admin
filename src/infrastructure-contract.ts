@@ -26,7 +26,7 @@ export const CheckSchema = z.object({
 });
 const metric = CheckSchema.extend({ latest_at: time.nullable() });
 export const InfrastructureSchema = z.object({
-  schema_version: z.literal("admin-infrastructure-v1"),
+  schema_version: z.literal("admin-infrastructure-v2"),
   availability: z.enum(["ready", "partial", "unavailable"]),
   configuration: z.enum([
     "configured",
@@ -80,15 +80,15 @@ export const InfrastructureSchema = z.object({
     .array(
       z.object({
         name: text,
-        metadata: CheckSchema.extend({ storage_bytes: number }),
+        storage: metric.extend({ storage_bytes: number, source: z.literal("analytics") }),
         metrics: metric.extend({ rows_read: number, rows_written: number }),
       }),
     )
     .max(2),
   r2: z.object({
     name: text,
-    metadata: CheckSchema,
     storage: metric.extend({
+      source: z.literal("analytics"),
       payload_bytes: number,
       metadata_bytes: number,
       objects: number,

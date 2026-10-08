@@ -60,8 +60,8 @@ export function OperationsSummary({
   const dbSize =
     infra &&
     infra.d1.length === 2 &&
-    infra.d1.every((d) => d.metadata.storage_bytes !== null)
-      ? infra.d1.reduce((s, d) => s + d.metadata.storage_bytes!, 0)
+    infra.d1.every((d) => d.storage.storage_bytes !== null)
+      ? infra.d1.reduce((s, d) => s + d.storage.storage_bytes!, 0)
       : null;
   const system = operationsHealth(report, infra, now);
   const stale = infra ? infrastructureStale(infra, now) : false;
@@ -501,7 +501,7 @@ export function InfrastructurePage({
         <section className="panel">
           <div className="section-head">
             <h2>D1 databases</h2>
-            <span className="small muted">metadata / aggregates only</span>
+            <span className="small muted">Analytics · 最新容量サンプル</span>
           </div>
           <div className="table-wrap">
             <table>
@@ -518,10 +518,10 @@ export function InfrastructurePage({
                     <td className="mono">
                       {d.name}
                       <small>
-                        <State check={d.metadata} />
+                        <State check={d.storage} />
                       </small>
                     </td>
-                    <td>{bytes(d.metadata.storage_bytes)}</td>
+                    <td>{bytes(d.storage.storage_bytes)}<small>容量サンプル：<DateTime stamp={d.storage.latest_at} /></small></td>
                     <td className="mono">
                       {value(d.metrics.rows_read)} /{" "}
                       {value(d.metrics.rows_written)}
@@ -545,7 +545,7 @@ export function InfrastructurePage({
         <section className="panel">
           <div className="section-head">
             <h2>R2 evidence</h2>
-            <State check={r?.r2.metadata} />
+            <State check={r?.r2.storage} />
           </div>
           <div className="detail-content">
             <p className="mono">{r?.r2.name ?? "未取得"}</p>
@@ -599,7 +599,7 @@ export function InfrastructurePage({
             集計窓：
             <DateTime stamp={r?.window.start} /> →{" "}
             <DateTime stamp={r?.window.end} />
-            。対象3 Workers・2 D1・1
+            。D1・R2容量はAnalyticsの最新サンプルです。存在確認やリアルタイム容量ではありません。対象3 Workers・2 D1・1
             R2のみ。日次UTC利用枠・月次課金量・account全体の使用率には換算しません。空series
             / null / 失敗は0ではありません。
           </p>
@@ -622,8 +622,7 @@ export function InfrastructurePage({
                 w.domains,
                 w.exposure,
               ]),
-              ...r.d1.flatMap((d) => [d.metrics, d.metadata]),
-              r.r2.metadata,
+              ...r.d1.flatMap((d) => [d.metrics, d.storage]),
               r.r2.storage,
               r.r2.operations,
             ]

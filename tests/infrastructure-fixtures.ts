@@ -1,5 +1,5 @@
 // Synthetic only. These responses/credentials never belong in a production bundle.
-import { ACCOUNT_ID, DATABASES } from "../src/infrastructure-targets.ts";
+import { ACCOUNT_ID } from "../src/infrastructure-targets.ts";
 import { emptyInfrastructure } from "../src/infrastructure.ts";
 import { NOW, STAMP, json } from "./fixtures.ts";
 import type { Infrastructure } from "../src/infrastructure-contract.ts";
@@ -54,12 +54,12 @@ export function infrastructureFixture(configured = true): Infrastructure {
     };
   }
   for (const d of r.d1) {
-    d.metadata = { ...ok, storage_bytes: 1048576 };
+    d.storage = { ...ok, storage_bytes: 1048576, latest_at: STAMP, source: "analytics" };
     d.metrics = { ...ok, latest_at: STAMP, rows_read: 1500, rows_written: 25 };
   }
-  r.r2.metadata = { ...ok };
   r.r2.storage = {
     ...ok,
+    source: "analytics",
     latest_at: STAMP,
     payload_bytes: 262144,
     metadata_bytes: 512,
@@ -100,6 +100,8 @@ export function cloudflareFixture(patch?: InfraPatch): typeof fetch {
           }
         : query.includes("AdminD1Metrics")
           ? { total: [{ sum: { rowsRead: 1500, rowsWritten: 25 } }], latest }
+          : query.includes("AdminD1Storage")
+            ? { total: [{ max: { databaseSizeBytes: 1048576 }, dimensions: { datetime: STAMP } }] }
           : query.includes("AdminR2Storage")
             ? {
                 total: [
@@ -150,16 +152,6 @@ export function cloudflareFixture(patch?: InfraPatch): typeof fetch {
         },
         { hostname: "unrelated.fixture.test", service: "other-worker" },
       ];
-    else if (url.pathname.includes("/d1/database/")) {
-      const d = DATABASES.find((d) => url.pathname.endsWith(d.id))!;
-      result = {
-        uuid: d.id,
-        name: d.name,
-        file_size: 1048576,
-        unrelated: "private-sentinel",
-      };
-    } else if (url.pathname.includes("/r2/buckets/"))
-      result = { name: "ai-investment-evidence-private" };
     else throw new Error("Unexpected fixture path");
     return json({ success: true, result, errors: [] });
   }) as typeof fetch;

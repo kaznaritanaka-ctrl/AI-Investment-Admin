@@ -57,7 +57,7 @@ export function Badge({ value }: { value: string | null | undefined }) {
     <span
       className={"badge " + (good ? "success" : bad ? "warning" : "neutral")}
     >
-      {value ?? "未取得"}
+      {value === "not_applicable" ? "対象外" : (value ?? "未取得")}
     </span>
   );
 }
@@ -186,12 +186,17 @@ export function infrastructureAttention(
         );
     }
     for (const d of infra.d1) {
-      if (d.metadata.state === "missing")
-        add(d.name + "-missing", "error", d.name + "：構成を確認できません");
+      if (d.storage.state !== "ok")
+        add(
+          d.name + "-storage",
+          "unknown",
+          d.name + "：容量サンプルに未取得・古い結果があります",
+        );
       if (
         infra.plan.value === "paid" &&
-        d.metadata.storage_bytes !== null &&
-        d.metadata.storage_bytes >= 8_000_000_000
+        ["ok", "stale"].includes(d.storage.state) &&
+        d.storage.storage_bytes !== null &&
+        d.storage.storage_bytes >= 8_000_000_000
       )
         add(
           d.name + "-capacity",
@@ -251,7 +256,18 @@ export function OverviewPage({
       <div className="stats overview-stats" data-testid="overview-summary">
         {[
           ["収集完了", count(o?.completed, o?.expected), "Runs"],
-          ["公開完了", count(o?.published, o?.expected), "Runs"],
+          [
+            "公開完了",
+            o?.publication_expected === 0
+              ? "対象外"
+              : count(
+                  o?.published,
+                  o?.publication_expected === undefined
+                    ? o?.expected
+                    : o.publication_expected,
+                ),
+            "Runs",
+          ],
           ["鮮度正常", count(o?.fresh, o?.checked_sources), "Sources"],
           ["要確認", String(items.length), "Overview"],
         ].map(([label, value, page]) => (

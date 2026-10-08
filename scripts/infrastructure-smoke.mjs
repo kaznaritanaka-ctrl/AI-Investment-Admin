@@ -27,11 +27,10 @@ console.log(
     })),
     d1: r.d1.map((d) => ({
       name: d.name,
-      metadata: d.metadata.state,
+      storage: d.storage.state,
       metrics: d.metrics.state,
     })),
     r2: {
-      metadata: r.r2.metadata.state,
       storage: r.r2.storage.state,
       operations: r.r2.operations.state,
     },

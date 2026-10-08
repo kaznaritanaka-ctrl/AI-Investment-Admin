@@ -17,6 +17,7 @@ import {
 import { useRead } from "./use-read.ts";
 import { StatusSchema, INITIAL_SLOT } from "./contracts.ts";
 import { assessment, sourceChecks, scheduleLabel } from "./view-model.ts";
+import { RunRecovery } from "./RunRecovery.tsx";
 export function RunDetail({ run }: { run: RunDTO }) {
   return (
     <Panel title={"Run " + run.run_id}>
@@ -64,6 +65,7 @@ export function RunDetail({ run }: { run: RunDTO }) {
         </div>
       </div>
       <Related source={run.source_id} run={run.run_id} />
+      <RunRecovery run={run} />
       <h3>Checkpoint</h3>
       {run.checkpoints.length ? (
         run.checkpoints.map((c) => (

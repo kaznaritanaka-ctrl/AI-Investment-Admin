@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { operational, sourceDTO, READ_AT } from "../admin-fixtures.ts";
+import {
+  operational,
+  sourceDTO,
+  READ_AT,
+  recoveryFixture,
+} from "../admin-fixtures.ts";
 import { AdminResource } from "../../src/admin-contract.ts";
 import { infrastructureFixture } from "../infrastructure-fixtures.ts";
 import { report, fx, ai, NOW } from "../fixtures.ts";
@@ -18,6 +23,42 @@ test.beforeEach(async ({ page, context }) => {
       : route.fulfill({ status: 404, json: { error: "not_found" } });
   });
 });
+for (const width of [1440, 390]) {
+  test(`Run recovery shows evidence and pending investigation at ${width}px without writes`, async ({
+    page,
+  }) => {
+    const requests: string[] = [];
+    page.on("request", (r) => {
+      if (r.url().includes("/api/")) requests.push(r.method());
+    });
+    await page.setViewportSize({ width, height: 1100 });
+    const result = operational("runs");
+    result.runs![0].state = "failed";
+    result.runs![0].recovery = recoveryFixture();
+    result.runs![0].publication.state = "not_published";
+    await page.route("**/api/runs**", (route) =>
+      route.fulfill({ json: result }),
+    );
+    await page.goto("/#runs?run=ecb-run");
+    const panel = page
+      .getByRole("region", { name: "障害・夜間対応", exact: true })
+      .first();
+    await expect(panel).toBeVisible();
+    await expect(panel).toContainText("取得先のschema変更");
+    await expect(panel).toContainText("結果未連携・未報告");
+    await expect(panel).toContainText("このrunの欠測");
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth + 1,
+      ),
+    ).toBe(true);
+    expect(requests.every((method) => method === "GET")).toBe(true);
+    await page.screenshot({
+      path: `work/screenshots/synthetic-run-recovery-${width}.png`,
+      fullPage: true,
+    });
+  });
+}
 test("Overview is three sections with four cards and no price or diagnostic requests", async ({
   page,
 }) => {
@@ -404,4 +445,22 @@ test("Worker preserves GET-only and rejects arbitrary query before invoking any 
     (await request.get("/api/runs?url=https://example.com")).status(),
   ).toBe(400);
   expect((await request.get("/api/not-a-resource")).status()).toBe(404);
+});
+
+test("Infrastructure labels Analytics storage and its sample time without existence claims", async ({
+  page,
+}) => {
+  await page.goto("/#infrastructure");
+  await expect(
+    page.getByRole("heading", { name: "D1 databases" }),
+  ).toBeVisible();
+  await expect(page.getByText("Analytics · 最新容量サンプル")).toBeVisible();
+  await expect(page.getByText("容量サンプル：", { exact: false })).toHaveCount(
+    2,
+  );
+  await expect(
+    page.getByText("D1・R2容量はAnalyticsの最新サンプルです。", {
+      exact: false,
+    }),
+  ).toBeVisible();
 });
