@@ -1,12 +1,49 @@
+import {
+  HighresoRuns,
+  HighresoLatestPrices,
+} from "./admin-highreso-contract.ts";
 import { AdminQuery, AdminReport, AdminResource } from "./admin-contract.ts";
 import type { Query, Resource } from "./admin-contract.ts";
 export interface AdminReadService {
+  highresoRuns?(limit?: number): Promise<unknown>;
+  highresoLatestPrices?(): Promise<unknown>;
   read(resource: Resource, query: Query): Promise<unknown>;
 }
 export async function adminProxy(
   url: URL,
   binding?: AdminReadService,
 ): Promise<Response> {
+  if (url.pathname === "/api/highreso") {
+    if (url.search)
+      return Response.json({ error: "invalid_query" }, { status: 400 });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      if (!binding?.highresoRuns || !binding.highresoLatestPrices)
+        throw new Error("unavailable");
+      const [runs, prices] = await Promise.race([
+        Promise.all([binding.highresoRuns(30), binding.highresoLatestPrices()]),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error("deadline")), 10000);
+        }),
+      ]);
+      const body = JSON.stringify({
+        runs: HighresoRuns.parse(runs),
+        prices: HighresoLatestPrices.parse(prices),
+      });
+      if (new TextEncoder().encode(body).byteLength > 2 * 1024 * 1024)
+        throw new Error("response_too_large");
+      return new Response(body, {
+        headers: { "content-type": "application/json" },
+      });
+    } catch {
+      return Response.json(
+        { error: "admin_read_unavailable" },
+        { status: 503 },
+      );
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
   const parts = url.pathname.split("/").filter(Boolean);
   const resource = AdminResource.safeParse(parts[1]);
   if (!resource.success || parts.length > 3)

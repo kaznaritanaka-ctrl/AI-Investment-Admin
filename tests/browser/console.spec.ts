@@ -508,3 +508,39 @@ test("API usage explains invalid periods without the unrelated 31-day limit", as
   await page.goto("/#usage");
   await expect(page.getByRole("status")).toHaveText("期間は7日・30日・90日から指定してください。");
 });
+
+test("Highreso private page preserves quote variants and clears prices after RPC failure", async ({
+  page,
+}) => {
+  const { highresoFixture } = await import("../highreso-fixtures.ts");
+  let unavailable = false;
+  await page.route("**/api/highreso", (route) =>
+    unavailable
+      ? route.fulfill({
+          status: 503,
+          json: { error: "admin_read_unavailable" },
+        })
+      : route.fulfill({ json: highresoFixture() }),
+  );
+  await page.goto("/#highreso");
+  await expect(
+    page.getByRole("heading", { name: "ハイレゾ (非公開調査)", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: "Synthetic GPU", exact: true }),
+  ).toHaveCount(2);
+  await expect(
+    page.getByText("123.45000000000001", { exact: true }),
+  ).toBeVisible();
+  unavailable = true;
+  await page.clock.fastForward(60001);
+  await page.getByRole("button", { name: "今すぐ更新" }).click();
+  await expect(
+    page.getByText(
+      "非公開調査データを現在取得できません。未取得を正常とは判定しません。",
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText("123.45000000000001", { exact: true }),
+  ).toHaveCount(0);
+});
