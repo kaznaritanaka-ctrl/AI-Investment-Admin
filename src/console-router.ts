@@ -2,6 +2,7 @@ import type { Resource } from "./admin-contract.ts";
 export const pages = [
   "Overview",
   "Sources",
+  "Highreso",
   "Runs",
   "Data",
   "Infrastructure",
@@ -35,7 +36,7 @@ export function retained(
   location: Location,
   page: Page,
 ): Record<string, string> {
-  if (page === "Usage") return {};
+  if (page === "Usage" || page === "Highreso") return {};
   const allowed = [
     "source",
     ...(["Runs", "Data"].includes(page) ? ["from", "to", "run"] : []),
@@ -45,7 +46,7 @@ export function retained(
   );
 }
 export function apiURL(location: Location) {
-  if (location.page === "Infrastructure") return null;
+  if (["Infrastructure", "Highreso"].includes(location.page)) return null;
   if (location.page === "Usage") return "/api/usage?period=" + encodeURIComponent(location.params.get("period") ?? "30d");
   const q = new URLSearchParams(location.params);
   q.delete("attention");

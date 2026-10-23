@@ -1,3 +1,4 @@
+import { HighresoPage, parseHighreso } from "./Highreso.tsx";
 import { useEffect, useState } from "react";
 import { UsageSchema } from "./contracts.ts";
 import { AdminReport } from "./admin-contract.ts";
@@ -85,6 +86,16 @@ export function Console() {
     auto,
   );
   const usage = useRead(location.page === "Usage" ? apiURL(location) : null, v => UsageSchema.parse(v), 300000, auto);
+  // Highreso reads a fixed /api/highreso proxy route (apiURL returns null for it), so it uses its own hook.
+  const highreso = useRead(
+    location.page === "Highreso" ? "/api/highreso" : null,
+    parseHighreso,
+    300000,
+    auto,
+  );
+  const active = location.page === "Highreso" ? highreso : state;
+  const pageLabel =
+    location.page === "Highreso" ? "ハイレゾ (非公開調査)" : location.page === "Usage" ? "API利用状況" : location.page;
   const needsInfra = [
     "Overview",
     "Infrastructure",
@@ -98,7 +109,7 @@ export function Console() {
     auto,
   );
   const report = state.data,
-    busy = usage.busy || state.busy || (needsInfra && infra.busy);
+    busy = usage.busy || active.busy || (needsInfra && infra.busy);
   return (
     <Timezone.Provider value={zone}>
       <div className="app-shell console-shell">
@@ -126,9 +137,9 @@ export function Console() {
                 className={"nav-item " + (location.page === p ? "active" : "")}
                 href={href(p, retained(location, p))}
                 aria-current={location.page === p ? "page" : undefined}
-                key={p}
+                key={p === "Highreso" ? "ハイレゾ (非公開調査)" : p}
               >
-                {p === "Usage" ? "API利用状況" : p}
+                {p === "Usage" ? "API利用状況" : p === "Highreso" ? "ハイレゾ (非公開調査)" : p}
               </a>
             ))}
           </nav>
@@ -167,7 +178,7 @@ export function Console() {
                 onClick={() => {
                   if (frozen) unfreeze();
                   else if (location.page === "Usage") usage.refresh();
-                  else state.refresh();
+                  else active.refresh();
                   if (needsInfra) infra.refresh();
                 }}
                 disabled={
@@ -175,7 +186,7 @@ export function Console() {
                   now <
                     (location.page === "Infrastructure"
                       ? infra.nextAllowedAt
-                      : location.page === "Usage" ? usage.nextAllowedAt : state.nextAllowedAt)
+                      : location.page === "Usage" ? usage.nextAllowedAt : active.nextAllowedAt)
                 }
               >
                 {busy ? "取得中…" : "今すぐ更新"}
@@ -185,8 +196,8 @@ export function Console() {
           <main id="main-content" tabIndex={-1}>
             <div className="overview-heading">
               <div>
-                <p className="breadcrumb">Workspace / {location.page}</p>
-                <h1>{location.page === "Usage" ? "API利用状況" : location.page}</h1>
+                <p className="breadcrumb">Workspace / {pageLabel}</p>
+                <h1>{pageLabel}</h1>
               </div>
               <div className="small muted">
                 更新：
@@ -194,7 +205,7 @@ export function Console() {
                   value={
                     location.page === "Infrastructure"
                       ? infra.receivedAt
-                      : location.page === "Usage" ? usage.data?.fetched_at : state.receivedAt
+                      : location.page === "Usage" ? usage.data?.fetched_at : active.receivedAt
                   }
                 />
                 <small>
@@ -212,9 +223,9 @@ export function Console() {
                 )}
               </div>
             </div>
-            {state.error && (
+            {active.error && (
               <p className="notice error-text" role="alert">
-                {state.error}
+                {active.error}
               </p>
             )}
             {report && report.state !== "ready" && (
@@ -223,7 +234,7 @@ export function Console() {
                 。未取得情報を正常とは判定しません。
               </p>
             )}
-            {!["Overview", "Infrastructure", "Releases", "Usage"].includes(
+            {!["Overview", "Infrastructure", "Releases", "Usage", "Highreso"].includes(
               location.page,
             ) && <Filters location={location} />}
             {location.page === "Overview" && (
@@ -235,6 +246,9 @@ export function Console() {
               />
             )}
             {location.page === "Usage" && <UsagePage report={usage.data} period={location.params.get("period") ?? "30d"} error={usage.error} />}
+            {location.page === "Highreso" && (
+              <HighresoPage data={highreso.data} />
+            )}
             {location.page === "Sources" && <SourcesPage report={report} />}
             {location.page === "Runs" && (
               <RunsPage report={report} location={location} now={now} />
