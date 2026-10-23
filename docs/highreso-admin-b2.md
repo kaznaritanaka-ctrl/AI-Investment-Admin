@@ -1,6 +1,6 @@
 # Highreso private Admin visibility (Part B2)
 
-Local implementation only; not pushed or deployed.
+Released via PR after mutual review (Codex implementation, Claude review round 2 APPROVE, 2026-10-23).
 
 - `#highreso` adds ハイレゾ (非公開調査). The existing same-origin, read-only Admin proxy exposes `/api/highreso` behind the existing Worker Access boundary. No Cloudflare route, binding, secret, Access or domain configuration changed.
 - The proxy invokes only `ADMIN_READ.highresoRuns(30)` and `highresoLatestPrices()`. Existing `read(resource, query)` is unchanged. Queries are rejected, responses have the existing no-store/security headers, and both RPC responses must pass the copied Collector validators before any data is returned. A missing method/binding, RPC rejection, timeout or malformed response yields 503 with a fixed unavailable error. No raw exception or stale fallback is returned.
@@ -11,7 +11,6 @@ Local implementation only; not pushed or deployed.
 ## Validation in this workspace
 
 - Contract byte comparison, esbuild syntax checks, Prettier checks and `git diff --check` passed.
-- Attempted check, test, build, test:browser and deploy:dry-run: blocked before execution by missing dependencies and Corepack attempting to write to a read-only directory. They have NOT passed. There is no separate lint script in package.json.
-- An offline pnpm install unexpectedly attempted registry metadata requests; DNS/network requests failed and the process was stopped. No packages were downloaded. Further network access was not used.
-- Claude mutual review remains outstanding; no network review was requested under the task's no-network rule.
-- Full checks and mutual review are required before release. Collector Part A/B1 migration/release prerequisites are outside this Admin-only change.
+- 2026-10-23 (Node 24, pnpm 11.19): check, test, build, test:browser (22 passed, incl. Usage and Highreso) and deploy:dry-run all passed after rebasing onto the usage page (PR #9). There is no separate lint script in package.json.
+- Claude mutual review: round 1 CHANGES, round 2 APPROVE.
+- Requires the Collector release with `highresoRuns`/`highresoLatestPrices` (AI-Investment-APIs) to be deployed first.

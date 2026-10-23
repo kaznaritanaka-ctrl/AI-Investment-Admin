@@ -86,6 +86,7 @@ export function Console() {
     auto,
   );
   const usage = useRead(location.page === "Usage" ? apiURL(location) : null, v => UsageSchema.parse(v), 300000, auto);
+  // Highreso reads a fixed /api/highreso proxy route (apiURL returns null for it), so it uses its own hook.
   const highreso = useRead(
     location.page === "Highreso" ? "/api/highreso" : null,
     parseHighreso,
