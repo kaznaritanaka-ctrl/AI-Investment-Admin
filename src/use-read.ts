@@ -71,7 +71,9 @@ export function useRead<T>(
         if (!response.ok) {
           if (response.status === 400)
             failure =
-              "検索条件を確認してください。期間は31日以内で指定してください。";
+              new URL(url, window.location.origin).pathname === "/api/usage"
+                ? "期間は7日・30日・90日から指定してください。"
+                : "検索条件を確認してください。期間は31日以内で指定してください。";
           if (response.status === 401 || response.status === 403)
             failure = "認証・接続状態を確認してください。";
           throw new Error(

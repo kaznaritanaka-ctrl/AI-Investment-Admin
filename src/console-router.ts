@@ -5,6 +5,7 @@ export const pages = [
   "Runs",
   "Data",
   "Infrastructure",
+  "Usage",
   "Releases",
   "Rights",
   "Settings",
@@ -34,6 +35,7 @@ export function retained(
   location: Location,
   page: Page,
 ): Record<string, string> {
+  if (page === "Usage") return {};
   const allowed = [
     "source",
     ...(["Runs", "Data"].includes(page) ? ["from", "to", "run"] : []),
@@ -44,6 +46,7 @@ export function retained(
 }
 export function apiURL(location: Location) {
   if (location.page === "Infrastructure") return null;
+  if (location.page === "Usage") return "/api/usage?period=" + encodeURIComponent(location.params.get("period") ?? "30d");
   const q = new URLSearchParams(location.params);
   q.delete("attention");
   q.delete("initial");

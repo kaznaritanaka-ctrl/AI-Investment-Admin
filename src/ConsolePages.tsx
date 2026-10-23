@@ -1063,3 +1063,5 @@ export function Diagnostics() {
     </div>
   );
 }
+
+export { UsagePage } from "./UsagePage.tsx";

@@ -314,3 +314,9 @@
     font-size: 24px;
   }
 }
+
+.usage-day { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); align-items: center; gap: 12px; margin: 8px 0; }
+.usage-day svg { width: 100%; height: 20px; }
+.usage-days { max-height: 480px; overflow: auto; }
+[aria-label="利用状況の期間"] { display: flex; gap: 8px; }
+[aria-label="利用状況の期間"] [aria-current="page"] { font-weight: bold; outline: 2px solid currentColor; }

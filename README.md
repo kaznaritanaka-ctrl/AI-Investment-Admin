@@ -68,3 +68,5 @@ pnpm.cmd deploy:dry-run
 契約の詳細：[公開APIとAdmin API契約](docs/api-contract.md)。
 
 今回のAdmin差分は資料と配信metadataだけで、画面code・Access・binding変更なし、追加deployは不要です。API repoの docs/operations-acceptance.md にread-only checker、安全な通知有効化、復旧、7日間受け入れを集約しています。画面は閲覧口であり、独立した常時監視や通知送達を保証しません。GPU/電力の新しい実収集は対象外です。
+
+API利用状況（`#usage`）は既存Secretと固定accountを使い、`GET /api/usage?period=7d|30d|90d`からAnalytics Engineの`api_usage_v1`を読みます。成功結果だけ内部で5分キャッシュします。日別（UTC）・エンドポイント・国地域・上位の組合せを標本補正した推計値で表示し、自分たちの確認作業も含みます。未設定・権限不足・取得エラーを区別します。権限不足時に鍵の権限を自動変更しません。データ記録側（API repoのPart 1）の反映は別作業です。
