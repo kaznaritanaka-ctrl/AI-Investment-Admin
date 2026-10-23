@@ -60,3 +60,19 @@ tokenはWorker Secretのみ。VITE_、HTML、localStorage、console、診断コ�
 コード・token scope・Secret交換・本番切替を別々に確認します。先にこのコードを既存権限で検証し、その後2権限のtokenに交換して全項目を確認する順序です。tokenの値はチャット・Git・ログ・fixtureへ渡しません。403や未取得はUnknownで表示し、権限拡大で解決したことにしません。
 
 旧版のREST呼び出しを必要とするrollbackでは縮小tokenと互換でないため、容量欄がUnknownになることを許容するか、権限を戻す別承認が必要です。詳細な交換・復旧手順とaccount固有の記録は非公開で管理します。
+
+## API利用状況
+
+`src/usage.ts`は既存のtoken/account照合後、固定`POST /accounts/{account}/analytics_engine/sql`で`api_usage_v1`のみ読みます。これはD1 SQLや書込みではありません。期間は7/30/90日のallowlist、集計は日別status class・endpoint・country・上位100組の4固定テンプレートで、件数は`SUM(_sample_interval * double1)`です。日別はUTC。4クエリを並列実行（最大4リクエスト）、共通10秒、各応答256KiB、redirectなし、再試行なし。返却値はZodで国コード・route長/文字種・status class・非負有限数を検証し、余分な情報を除去します。不正な行は除外し、除外数は処理内だけで数え、本文や件数はログ・応答に出しません。応答全体の形式・件数・容量制限違反はerrorのままです。
+
+`/api/usage`は他の内部APIと同じAccess境界・hostname/Origin/Sec-Fetch-Site検査を使用。固定内部キーで成功は300秒、permission_denied/errorは60秒キャッシュし、ブラウザへの応答はno-store。権限不足（401/403または認証エラーコード）は`permission_denied`、未設定/別accountは通信せず`unconfigured`、その他の失敗は`error`です。失敗本文・tokenは返却/記録しません。必要権限はAccount Analytics: Read。権限変更・Secret交換は別承認です。画面のグラフと表は推計値で、請求値や利用者数ではありません。
+
+SQLの仕様確認: [Analytics Engine SQL API](https://developers.cloudflare.com/analytics/analytics-engine/sql-api/)、[集計関数](https://developers.cloudflare.com/analytics/analytics-engine/sql-reference/aggregate-functions/)、[日時関数](https://developers.cloudflare.com/analytics/analytics-engine/sql-reference/date-time-functions/)。本番照会は通常テストに含めません。
+
+2026-10-23 ローカル検証（本番未照会）: Node 24.22.0 / pnpm 11.19.0でcheck、test（120件、うちusage 17件）、build（clientへのserver設定混入検査含む）、test:browser（20件、usageのモバイル・期間切替・権限不足・空データ含む）、生成configを使うdeploy:dry-runが成功。その後、Claudeレビュー（`/workspace/usage-design-20261023/claude-admin-review.txt`）でREQUEST_CHANGES。以下の修正後の再承認は未取得。commit/push/本番deployは行っていません。
+
+2026-10-23 レビュー対応: SVGに`preserveAspectRatio="none"`を設定し、ブラウザでモバイル/デスクトップの実描画幅を検証。「更新」は受信時刻ではなくサーバーの`fetched_at`を表示します。`/api/usage`の400は7/30/90日の期間選択を案内します。
+
+同日、依頼者から共有された実環境の読み取り検証結果: AE SQLの`sumIf`は動作、Content-Typeは`application/json`、`FORMAT JSON`の応答は`{meta,data,rows}`。無効tokenはHTTP 400で`{"success":false,"errors":[{"code":9106,"message":"Authentication failed (status: 400)"}]}`。この応答そのものを合成テストに追加し、9106/9109/10000/9103を含む認証コードを`permission_denied`に分類。unknown-tableのJSONエラーは`error`と固定理由`unknown_table`に変換し、上流本文は返しません。今回の修正作業では本番への追加照会・権限変更はしていません。
+
+レビュー修正後のローカル再検証: Node 24.22.0 / pnpm 11.19.0（Linuxのためpnpm.cmd相当を実行）。check、test（10ファイル・125件）、build（client境界検査含む）、test:browser（21件）、生成Vite設定のdeploy:dry-runがすべて成功。ブラウザ検証は合成応答のみで、棒の描画幅（390px/1440px）、サーバーfetched_at、400の期間案内を確認。commit/push/本番deployなし。Claudeの修正後再レビュー承認は未取得。

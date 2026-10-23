@@ -464,3 +464,47 @@ test("Infrastructure labels Analytics storage and its sample time without existe
     }),
   ).toBeVisible();
 });
+
+test("API usage switches periods and shows permission, empty and data states", async ({ page }) => {
+  const { usageFixture } = await import("../usage-fixtures.ts");
+  await page.setViewportSize({ width: 390, height: 844 });
+  const calls: string[] = [];
+  await page.route("**/api/usage**", route => {
+    const period = new URL(route.request().url()).searchParams.get("period");
+    calls.push(period ?? "");
+    const fixture = usageFixture();
+    return route.fulfill({ json: { ...fixture, period, ...(period === "7d" ? { status: "permission_denied" } : period === "90d" ? { daily: [], endpoints: [], countries: [], matrix: [] } : {}) } });
+  });
+  await page.goto("/#usage");
+  await expect(page.getByRole("heading", { name: "API利用状況", level: 1 })).toBeVisible();
+  await expect(page.getByText("5.00%", { exact: true })).toBeVisible();
+  await expect(page.getByText("自分たちの確認作業も含まれます")).toBeVisible();
+  await expect(page.getByRole("img", { name: /2026-10-22/ })).toBeVisible();
+  // Measure the painted bars, not just the SVG element, at mobile and desktop widths.
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: 1100 });
+    const ratio = await page.getByRole("img", { name: /2026-10-22/ }).evaluate(svg => {
+      const bounds = svg.getBoundingClientRect();
+      const bars = [...svg.querySelectorAll("rect")].map(r => r.getBoundingClientRect());
+      return (Math.max(...bars.map(r => r.right)) - Math.min(...bars.map(r => r.left))) / bounds.width;
+    });
+    expect(ratio).toBeCloseTo(1, 2);
+  }
+  await expect(page.locator(".overview-heading time")).toHaveAttribute("datetime", "2026-10-23T00:00:00.000Z");
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  await page.getByRole("link", { name: "7日", exact: true }).click();
+  await expect(page.getByText("Cloudflareの鍵に利用状況を読む権限（Account Analytics: Read）がありません")).toBeVisible();
+  await page.getByRole("link", { name: "90日", exact: true }).click();
+  await expect(page.getByText("この期間の利用記録はありません。")).toBeVisible();
+  await page.goBack();
+  await expect(page).toHaveURL(/#usage\?period=7d/);
+  expect(calls).toContain("30d"); expect(calls).toContain("7d"); expect(calls).toContain("90d");
+});
+
+
+test("API usage explains invalid periods without the unrelated 31-day limit", async ({ page }) => {
+  await page.route("**/api/usage**", route => route.fulfill({ status: 400, json: { error: "invalid_period" } }));
+  await page.goto("/#usage");
+  await expect(page.getByRole("status")).toHaveText("期間は7日・30日・90日から指定してください。");
+});

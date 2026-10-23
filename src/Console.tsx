@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { UsageSchema } from "./contracts.ts";
 import { AdminReport } from "./admin-contract.ts";
 import { InfrastructureSchema } from "./infrastructure-contract.ts";
 import { InfrastructurePage } from "./Operations.tsx";
@@ -19,6 +20,7 @@ import {
   Filters,
 } from "./console-ui.tsx";
 import {
+  UsagePage,
   RunsPage,
   DataPage,
   RightsPage,
@@ -77,11 +79,12 @@ export function Console() {
     return () => clearInterval(timer);
   }, [auto, location.page, location.params.toString()]);
   const state = useRead(
-    apiURL(location),
+    location.page === "Usage" ? null : apiURL(location),
     (v) => AdminReport.parse(v),
     frozen ? null : interval,
     auto,
   );
+  const usage = useRead(location.page === "Usage" ? apiURL(location) : null, v => UsageSchema.parse(v), 300000, auto);
   const needsInfra = [
     "Overview",
     "Infrastructure",
@@ -95,7 +98,7 @@ export function Console() {
     auto,
   );
   const report = state.data,
-    busy = state.busy || (needsInfra && infra.busy);
+    busy = usage.busy || state.busy || (needsInfra && infra.busy);
   return (
     <Timezone.Provider value={zone}>
       <div className="app-shell console-shell">
@@ -125,7 +128,7 @@ export function Console() {
                 aria-current={location.page === p ? "page" : undefined}
                 key={p}
               >
-                {p}
+                {p === "Usage" ? "API利用状況" : p}
               </a>
             ))}
           </nav>
@@ -163,6 +166,7 @@ export function Console() {
                 className="primary"
                 onClick={() => {
                   if (frozen) unfreeze();
+                  else if (location.page === "Usage") usage.refresh();
                   else state.refresh();
                   if (needsInfra) infra.refresh();
                 }}
@@ -171,7 +175,7 @@ export function Console() {
                   now <
                     (location.page === "Infrastructure"
                       ? infra.nextAllowedAt
-                      : state.nextAllowedAt)
+                      : location.page === "Usage" ? usage.nextAllowedAt : state.nextAllowedAt)
                 }
               >
                 {busy ? "取得中…" : "今すぐ更新"}
@@ -182,7 +186,7 @@ export function Console() {
             <div className="overview-heading">
               <div>
                 <p className="breadcrumb">Workspace / {location.page}</p>
-                <h1>{location.page}</h1>
+                <h1>{location.page === "Usage" ? "API利用状況" : location.page}</h1>
               </div>
               <div className="small muted">
                 更新：
@@ -190,7 +194,7 @@ export function Console() {
                   value={
                     location.page === "Infrastructure"
                       ? infra.receivedAt
-                      : state.receivedAt
+                      : location.page === "Usage" ? usage.data?.fetched_at : state.receivedAt
                   }
                 />
                 <small>
@@ -219,7 +223,7 @@ export function Console() {
                 。未取得情報を正常とは判定しません。
               </p>
             )}
-            {!["Overview", "Infrastructure", "Releases"].includes(
+            {!["Overview", "Infrastructure", "Releases", "Usage"].includes(
               location.page,
             ) && <Filters location={location} />}
             {location.page === "Overview" && (
@@ -230,6 +234,7 @@ export function Console() {
                 allAttention={location.params.get("attention") === "all"}
               />
             )}
+            {location.page === "Usage" && <UsagePage report={usage.data} period={location.params.get("period") ?? "30d"} error={usage.error} />}
             {location.page === "Sources" && <SourcesPage report={report} />}
             {location.page === "Runs" && (
               <RunsPage report={report} location={location} now={now} />

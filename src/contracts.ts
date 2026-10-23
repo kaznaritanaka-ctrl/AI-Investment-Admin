@@ -233,3 +233,21 @@ export type Observation = z.infer<typeof ObservationSchema>;
 export type FX = z.infer<typeof FXSchema>;
 export type AI = z.infer<typeof AISchema>;
 export type Health = z.infer<typeof HealthSchema>;
+
+// Analytics Engine projections. Numeric strings are accepted only for finite counts.
+export const UsagePeriod = z.enum(["7d", "30d", "90d"]);
+export const UsageStatusClass = z.enum(["2xx", "3xx", "4xx", "429", "5xx"]);
+const usageCount = z.union([z.number(), z.string().regex(/^\d+(\.\d+)?$/).transform(Number)]).pipe(z.number().finite().nonnegative().max(Number.MAX_SAFE_INTEGER));
+const usageRoute = z.string().min(1).max(160).regex(/^(other|\/[A-Za-z0-9_:/.-]*)$/);
+const usageCountry = z.string().regex(/^(?:[A-Z]{2}|T1)$/);
+export const UsageDay = z.object({ day: z.iso.date(), statusClass: UsageStatusClass, calls: usageCount });
+export const UsageEndpoint = z.object({ route: usageRoute, calls: usageCount, rateLimited: usageCount, errors: usageCount });
+export const UsageCountry = z.object({ country: usageCountry, calls: usageCount });
+export const UsageCell = z.object({ route: usageRoute, country: usageCountry, calls: usageCount });
+export const UsageSchema = z.object({
+  status: z.enum(["ok", "unconfigured", "permission_denied", "error"]), period: UsagePeriod,
+  reason: z.literal("unknown_table").optional(),
+  fetched_at: z.iso.datetime(), daily: z.array(UsageDay).max(500), endpoints: z.array(UsageEndpoint).max(200),
+  countries: z.array(UsageCountry).max(300), matrix: z.array(UsageCell).max(100),
+});
+export type Usage = z.infer<typeof UsageSchema>;
