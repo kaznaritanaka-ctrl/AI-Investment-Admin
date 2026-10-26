@@ -97,3 +97,50 @@ it("preserves quote identity, decimals, nulls, attribution and bounded UTC histo
     "現在取得できません",
   );
 });
+it.each([false, true])("accepts prices with identity fields present=%s through proxy and client", async (changed) => {
+  const data = highresoFixture();
+  if (changed) Object.assign(data.prices.prices[0], {
+    instance_id: "synthetic-new",
+    instance_id_changed_from: "synthetic-old",
+    identity_change_label: "型番変更",
+  });
+  const service = { ...binding(), highresoLatestPrices: async () => data.prices };
+  const response = await adminProxy(url, service);
+  expect(response.status).toBe(200);
+  expect(parseHighreso(await response.json())).toEqual(data);
+});
+it("keeps price entries strict and validates identity field types", async () => {
+  for (const extra of [
+    { unknown_key: "rejected" },
+    { instance_id: 123 },
+    { instance_id_changed_from: 123 },
+    { identity_change_label: "別のラベル" },
+  ]) {
+    const data = highresoFixture();
+    Object.assign(data.prices.prices[0], extra);
+    expect(() => parseHighreso(data)).toThrow();
+    expect((await adminProxy(url, {
+      ...binding(), highresoLatestPrices: async () => data.prices,
+    })).status).toBe(503);
+  }
+});
+it("accepts nullable identity fields from the API contract", () => {
+  const data = highresoFixture();
+  Object.assign(data.prices.prices[0], {
+    instance_id: null, instance_id_changed_from: null, identity_change_label: null,
+  });
+  expect(parseHighreso(data)).toEqual(data);
+});
+it("shows identity changes only on labeled rows and escapes the previous model", () => {
+  const data = highresoFixture();
+  expect(renderToStaticMarkup(<HighresoPage data={data} />)).not.toContain("型番変更（旧:");
+  Object.assign(data.prices.prices[0], {
+    instance_id: "synthetic-new",
+    instance_id_changed_from: '<img src=x onerror="alert(1)">',
+    identity_change_label: "型番変更",
+  });
+  const html = renderToStaticMarkup(<HighresoPage data={parseHighreso(data)} />);
+  expect(html).toContain("型番変更（旧: &lt;img src=x onerror=&quot;alert(1)&quot;&gt;）");
+  expect(html).not.toContain("<img");
+  expect(html.match(/型番変更（旧:/g)).toHaveLength(1);
+});
