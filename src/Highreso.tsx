@@ -132,7 +132,14 @@ export function HighresoPage({ data }: { data: Data | null }) {
                 {data.prices.prices.map((price) => (
                   <tr key={price.record_key}>
                     <td>{price.record_key}</td>
-                    <td>{price.gpu_model}</td>
+                    <td>
+                      {price.gpu_model}
+                      {price.identity_change_label && (
+                        <div>
+                          {price.identity_change_label}（旧: {price.instance_id_changed_from ?? "未提供"}）
+                        </div>
+                      )}
+                    </td>
                     <td>{price.gpu_count ?? "未提供"}</td>
                     <td>{price.price_jpy ?? "未提供（無料ではありません）"}</td>
                     <td>{price.unit}</td>
